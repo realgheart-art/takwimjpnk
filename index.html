@@ -161,6 +161,13 @@ input,select{font-family:inherit;font-size:.92rem}
 .toast.err{background:var(--danger)}
 
 .loading{text-align:center;padding:60px;color:var(--muted);font-size:.9rem}
+.load-error{max-width:520px;margin:40px auto;background:#fff;border:1.5px solid var(--line);border-radius:14px;
+  padding:30px 28px;text-align:center;box-shadow:var(--shadow)}
+.load-error .le-icon{font-size:2rem;color:var(--brass);margin-bottom:6px}
+.load-error h3{color:var(--navy);font-size:1.2rem;margin-bottom:8px}
+.load-error p{color:var(--muted);font-size:.86rem;line-height:1.55;margin-bottom:12px}
+.load-error code{display:block;background:var(--paper-2);border:1px solid var(--line);border-radius:8px;
+  padding:9px 11px;font-size:.76rem;color:var(--danger);word-break:break-word;margin-bottom:6px;text-align:left}
 .spin{display:inline-block;width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--brass);border-radius:50%;animation:sp .7s linear infinite;margin-bottom:10px}
 @keyframes sp{to{transform:rotate(360deg)}}
 
@@ -427,13 +434,51 @@ async function initApp(){
   if(SESSION.peranan!=='Pengguna JPN')
     document.getElementById('addBtn').style.display='flex';
 
-  const r = await api('bootstrap', {});
-  if(!r.ok){ toast(r.error||'Gagal memuatkan data','err'); return; }
-  SEKTOR=r.sektor; VIP=r.vip; VENUE=r.venue; PROGRAM=r.program;
-  SEKTOR.forEach(s=>{ WARNA[s.nama]=s.warna; aktifSektor.add(s.nama); });
+  // tunjuk semula spinner (penting bila "Cuba Semula")
+  document.getElementById('calWrap').innerHTML =
+    '<div class="loading"><div class="spin"></div><br>Memuatkan takwim…</div>';
 
+  let r;
+  try{
+    r = await api('bootstrap', {});
+  }catch(e){
+    showLoadError('Tidak dapat menghubungi pelayan.',
+      'Semak: (1) GAS_URL betul & berakhir dengan /exec, (2) deployment ditetapkan "Anyone", (3) talian internet.',
+      e.message); return;
+  }
+  if(!r || !r.ok){
+    showLoadError('Pelayan menolak permintaan data.',
+      'Jika Code.gs baru diubah: Deploy → Manage deployments → Edit → Version: New version. Pastikan setupSheet() telah dijalankan.',
+      (r && r.error) || 'Tiada mesej ralat dari pelayan.'); return;
+  }
+  if(!Array.isArray(r.sektor) || r.sektor.length===0){
+    showLoadError('Data sektor kosong.',
+      'Tab "Sektor" tiada isi. Jalankan fungsi setupSheet() dalam Apps Script, kemudian Cuba Semula.',
+      ''); return;
+  }
+
+  SEKTOR=r.sektor; VIP=r.vip||[]; VENUE=r.venue||[]; PROGRAM=r.program||[];
+  WARNA={}; aktifSektor.clear();
+  SEKTOR.forEach(s=>{ WARNA[s.nama]=s.warna; aktifSektor.add(s.nama); });
   buildSektorFilter();
+
+  if(!window.FullCalendar){
+    showLoadError('Pustaka kalendar gagal dimuat.',
+      'Talian mungkin tersekat ketika memuat FullCalendar dari CDN. Muat semula halaman bila ada talian stabil.',
+      ''); return;
+  }
   buildCalendar();
+}
+
+function showLoadError(tajuk, hint, detail){
+  document.getElementById('calWrap').innerHTML =
+    '<div class="load-error">'+
+      '<div class="le-icon">⚠</div>'+
+      '<h3>'+esc(tajuk)+'</h3>'+
+      '<p>'+esc(hint)+'</p>'+
+      (detail ? '<code>'+esc(detail)+'</code>' : '')+
+      '<button class="btn-save" style="margin-top:8px" onclick="initApp()">Cuba Semula</button>'+
+    '</div>';
 }
 
 function ringkasSektor(n){ return n.replace('Sektor ','').slice(0,22); }
