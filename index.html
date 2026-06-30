@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Takwim JPN Kedah Interaktif</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f2942">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Takwim JPN">
+<meta name="description" content="Sistem perancangan takwim aktiviti merentas sektor — JPN Kedah">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<style>
+:root{
+  --navy:#0f2942; --navy-2:#14213d; --navy-soft:#1c3a5a;
+  --brass:#b8860b; --brass-soft:#c89b3c; --brass-pale:#e9d9a8;
+  --paper:#faf8f3; --paper-2:#f1ece0; --ink:#1a1a1a; --muted:#6b6457;
+  --line:#e3dcc9; --danger:#b3261e; --ok:#386641;
+  --shadow:0 10px 30px rgba(15,41,66,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.5}
+h1,h2,h3{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-.01em}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select{font-family:inherit;font-size:.92rem}
+
+/* ---------- LOGIN ---------- */
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(120% 120% at 80% 0%, var(--navy-soft), var(--navy) 60%);z-index:50;padding:20px}
+.login-card{background:var(--paper);width:100%;max-width:400px;border-radius:18px;padding:36px 34px 30px;box-shadow:var(--shadow);
+  border-top:5px solid var(--brass);text-align:center}
+.login-logo{width:120px;height:120px;object-fit:contain;margin:0 auto 14px;display:block;
+  filter:drop-shadow(0 6px 14px rgba(15,41,66,.22))}
+.login-card h1{font-size:1.55rem;color:var(--navy);line-height:1.15;margin-bottom:6px}
+.login-card p.sub{color:var(--muted);font-size:.86rem;margin-bottom:24px}
+.field{margin-bottom:16px;text-align:left}
+.field label{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:6px;letter-spacing:.02em}
+.field input{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;background:#fff;transition:.15s}
+.field input:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(184,134,11,.12)}
+.btn-primary{width:100%;background:var(--navy);color:#fff;padding:12px;border-radius:10px;font-weight:600;font-size:.95rem;transition:.15s}
+.btn-primary:hover{background:var(--navy-2)}
+.btn-primary:disabled{opacity:.6;cursor:wait}
+.login-err{background:#fdeceb;color:var(--danger);font-size:.82rem;padding:10px 12px;border-radius:8px;margin-bottom:14px;display:none;text-align:left}
+.install-link{display:block;width:100%;margin-top:12px;color:var(--navy);font-size:.82rem;font-weight:600;padding:9px;
+  border:1.5px dashed var(--brass);border-radius:10px;background:transparent;transition:.15s}
+.install-link:hover{background:#fff8e6}
+
+/* ---------- APP SHELL ---------- */
+#app{display:none;min-height:100vh;flex-direction:column}
+.topbar{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;
+  padding:14px 22px;gap:16px;position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand .mark{width:42px;height:42px;border-radius:50%;object-fit:contain;background:#fff;padding:2px;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.brand .txt{min-width:0}
+.brand .eyebrow{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--brass-pale);opacity:.9}
+.brand h1{font-size:1.05rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-box{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.user-meta{text-align:right;line-height:1.25}
+.user-meta .nm{font-weight:600;font-size:.86rem}
+.role-badge{font-size:.62rem;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:99px;
+  background:rgba(184,134,11,.22);color:var(--brass-pale);font-weight:600}
+.btn-ghost{color:var(--brass-pale);font-size:.8rem;font-weight:600;padding:7px 12px;border:1px solid rgba(233,217,168,.3);border-radius:8px;transition:.15s}
+.btn-ghost:hover{background:rgba(233,217,168,.12)}
+
+.layout{display:flex;flex:1;min-height:0}
+.sidebar{width:280px;background:var(--paper-2);border-right:1px solid var(--line);padding:20px 18px;overflow-y:auto;flex-shrink:0}
+.sidebar h2{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;font-family:'Plus Jakarta Sans';font-weight:700}
+.filter-actions{display:flex;gap:8px;margin:10px 0 14px}
+.filter-actions button{font-size:.72rem;font-weight:600;color:var(--navy);padding:5px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;transition:.15s}
+.filter-actions button:hover{border-color:var(--brass)}
+.sektor-item{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;cursor:pointer;transition:.12s;font-size:.82rem}
+.sektor-item:hover{background:#fff}
+.sektor-item input{accent-color:var(--navy);width:15px;height:15px;cursor:pointer}
+.swatch{width:13px;height:13px;border-radius:4px;flex-shrink:0}
+.sektor-item .lbl{line-height:1.25}
+
+.main{flex:1;padding:22px 26px;overflow-y:auto;min-width:0}
+.main-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:16px;flex-wrap:wrap}
+.main-head .title-wrap .eyebrow{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brass);font-weight:700}
+.main-head .title-wrap h2{font-size:1.5rem;color:var(--navy)}
+.head-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn-pdf{background:#fff;color:var(--navy);font-weight:700;padding:10px 18px;border-radius:10px;font-size:.88rem;
+  border:1.5px solid var(--navy);display:flex;align-items:center;gap:7px;transition:.15s}
+.btn-pdf:hover{background:var(--navy);color:#fff}
+.btn-add{background:var(--brass);color:var(--navy);font-weight:700;padding:10px 18px;border-radius:10px;font-size:.88rem;display:flex;align-items:center;gap:7px;transition:.15s;box-shadow:0 4px 12px rgba(184,134,11,.25)}
+.btn-add:hover{background:var(--brass-soft);transform:translateY(-1px)}
+
+/* ---------- CALENDAR ---------- */
+#calendar{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+.fc{--fc-border-color:var(--line);--fc-today-bg-color:#fdf6e3;font-size:.85rem}
+.fc .fc-toolbar-title{font-family:'Fraunces',serif;color:var(--navy);font-size:1.25rem!important;font-weight:600}
+.fc .fc-button{background:var(--navy)!important;border:none!important;font-weight:600;font-size:.78rem;text-transform:capitalize;padding:6px 12px}
+.fc .fc-button:hover{background:var(--navy-2)!important}
+.fc .fc-button-primary:not(:disabled).fc-button-active{background:var(--brass)!important;color:var(--navy)!important}
+.fc-event{border:none!important;font-size:.74rem;font-weight:600;padding:1px 5px;cursor:pointer;border-radius:5px!important}
+.fc-daygrid-event{white-space:normal}
+.fc-col-header-cell-cushion,.fc-daygrid-day-number{color:var(--navy);text-decoration:none}
+
+/* ---------- MODAL ---------- */
+.overlay{position:fixed;inset:0;background:rgba(15,41,66,.55);display:none;align-items:flex-start;justify-content:center;
+  z-index:40;padding:32px 16px;overflow-y:auto;backdrop-filter:blur(2px)}
+.overlay.show{display:flex}
+.modal{background:var(--paper);width:100%;max-width:580px;border-radius:16px;box-shadow:var(--shadow);border-top:5px solid var(--brass);
+  animation:rise .22s ease}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;padding:22px 26px 14px;border-bottom:1px solid var(--line)}
+.modal-head .eyebrow{font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brass);font-weight:700}
+.modal-head h3{font-size:1.35rem;color:var(--navy)}
+.x-btn{font-size:1.5rem;color:var(--muted);line-height:1;padding:0 4px}
+.modal-body{padding:20px 26px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grp{margin-bottom:15px}
+.grp label{display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:.02em}
+.grp input,.grp select{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;background:#fff;transition:.15s}
+.grp input:focus,.grp select:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(184,134,11,.12)}
+.vip-box{border:1.5px solid var(--line);border-radius:9px;background:#fff;padding:8px;max-height:128px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px}
+.vip-chip{display:flex;align-items:center;gap:6px;font-size:.78rem;padding:5px 9px;border:1px solid var(--line);border-radius:99px;cursor:pointer;transition:.12s;user-select:none}
+.vip-chip input{accent-color:var(--navy)}
+.vip-chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.modal-foot{padding:16px 26px 22px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line)}
+.btn-cancel{padding:10px 18px;border-radius:9px;font-weight:600;color:var(--navy);border:1.5px solid var(--line);background:#fff}
+.btn-cancel:hover{border-color:var(--muted)}
+.btn-save{padding:10px 22px;border-radius:9px;font-weight:700;background:var(--navy);color:#fff}
+.btn-save:hover{background:var(--navy-2)}
+.btn-del{padding:10px 18px;border-radius:9px;font-weight:600;color:var(--danger);border:1.5px solid #f1c9c6;background:#fff;margin-right:auto}
+.btn-del:hover{background:#fdeceb}
+
+/* detail view */
+.detail-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line);font-size:.88rem}
+.detail-row:last-child{border:none}
+.detail-row .k{flex-shrink:0;width:120px;font-weight:700;color:var(--muted);font-size:.78rem;letter-spacing:.02em;text-transform:uppercase;padding-top:1px}
+.detail-row .v{color:var(--ink)}
+.sektor-tag{display:inline-block;padding:3px 11px;border-radius:99px;color:#fff;font-size:.78rem;font-weight:600}
+
+/* clash warning */
+.clash-banner{background:#fff8e6;border:1.5px solid var(--brass-pale);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.clash-banner h4{font-family:'Plus Jakarta Sans';font-size:.82rem;color:var(--brass);font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.clash-banner ul{list-style:none;font-size:.8rem;color:var(--ink)}
+.clash-banner li{padding:3px 0 3px 16px;position:relative}
+.clash-banner li:before{content:'•';position:absolute;left:2px;color:var(--brass)}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--navy);color:#fff;
+  padding:13px 22px;border-radius:11px;font-size:.86rem;font-weight:600;box-shadow:var(--shadow);z-index:60;transition:.3s;opacity:0}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.err{background:var(--danger)}
+
+.loading{text-align:center;padding:60px;color:var(--muted);font-size:.9rem}
+.spin{display:inline-block;width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--brass);border-radius:50%;animation:sp .7s linear infinite;margin-bottom:10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+@media(max-width:860px){
+  .layout{flex-direction:column}
+  .sidebar{width:100%;border-right:none;border-bottom:1px solid var(--line);max-height:none}
+  .row2{grid-template-columns:1fr}
+  .brand h1{font-size:.92rem}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="login-card">
+    <img src="logo.png" alt="Takwim Interaktif JPN Kedah" class="login-logo">
+    <h1>Takwim JPN Interaktif</h1>
+    <p class="sub">Sistem perancangan takwim aktiviti merentas sektor</p>
+    <div class="login-err" id="loginErr"></div>
+    <div class="field">
+      <label>Nama Pengguna</label>
+      <input type="text" id="liUser" autocomplete="username" placeholder="cth: admin">
+    </div>
+    <div class="field">
+      <label>Kata Laluan</label>
+      <input type="password" id="liPass" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <button class="btn-primary" id="loginBtn" onclick="doLogin()">Log Masuk</button>
+    <button class="install-link" id="installBtn" onclick="pasangApp()" style="display:none">⤓ Pasang aplikasi ke peranti</button>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <div class="topbar">
+    <div class="brand">
+      <img src="logo.png" alt="" class="mark">
+      <div class="txt">
+        <div class="eyebrow">JPN Kedah</div>
+        <h1>Takwim Interaktif</h1>
+      </div>
+    </div>
+    <div class="user-box">
+      <div class="user-meta">
+        <div class="nm" id="uName">—</div>
+        <span class="role-badge" id="uRole">—</span>
+      </div>
+      <button class="btn-ghost" onclick="logout()">Log Keluar</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <h2>Tapis Mengikut Sektor</h2>
+      <div class="filter-actions">
+        <button onclick="setAllSektor(true)">Pilih semua</button>
+        <button onclick="setAllSektor(false)">Nyahpilih</button>
+      </div>
+      <div id="sektorFilter"></div>
+    </aside>
+
+    <main class="main">
+      <div class="main-head">
+        <div class="title-wrap">
+          <div class="eyebrow">Perancangan Tahunan</div>
+          <h2>Kalendar Aktiviti Sektor</h2>
+        </div>
+        <div class="head-actions">
+          <button class="btn-pdf" onclick="openExport()">⤓ Export PDF</button>
+          <button class="btn-add" id="addBtn" onclick="openForm()" style="display:none">＋ Tambah Program</button>
+        </div>
+      </div>
+      <div id="calWrap">
+        <div class="loading"><div class="spin"></div><br>Memuatkan takwim…</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ============ MODAL: BORANG ============ -->
+<div class="overlay" id="formOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow" id="formEyebrow">Entri Baharu</div>
+        <h3 id="formTitle">Tambah Program</h3>
+      </div>
+      <button class="x-btn" onclick="closeForm()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="clashArea"></div>
+      <input type="hidden" id="fId">
+      <div class="grp">
+        <label>Nama Program</label>
+        <input type="text" id="fNama" placeholder="cth: Bengkel Penyelarasan Takwim 2026">
+      </div>
+      <div class="grp">
+        <label>Sektor</label>
+        <select id="fSektor"></select>
+      </div>
+      <div class="row2">
+        <div class="grp">
+          <label>Unit</label>
+          <input type="text" id="fUnit" placeholder="cth: Unit Data">
+        </div>
+        <div class="grp">
+          <label>Pegawai Bertanggungjawab</label>
+          <input type="text" id="fPegawai" placeholder="Nama pegawai">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="grp">
+          <label>Tarikh Mula</label>
+          <input type="date" id="fMula">
+        </div>
+        <div class="grp">
+          <label>Tarikh Tamat</label>
+          <input type="date" id="fTamat">
+        </div>
+      </div>
+      <div class="grp">
+        <label>Tempat</label>
+        <select id="fVenueSel" onchange="onVenueChange()"></select>
+        <input type="text" id="fVenueLain" placeholder="Taip tempat sendiri…" style="display:none;margin-top:8px">
+      </div>
+      <div class="grp">
+        <label>VIP Terlibat (boleh pilih lebih dari satu)</label>
+        <div class="vip-box" id="fVip"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-del" id="delBtn" onclick="doDelete()" style="display:none">Padam</button>
+      <button class="btn-cancel" onclick="closeForm()">Batal</button>
+      <button class="btn-save" id="saveBtn" onclick="doSave()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: DETAIL ============ -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">Butiran Program</div>
+        <h3 id="dTitle">—</h3>
+      </div>
+      <button class="x-btn" onclick="closeDetail()">×</button>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-foot" id="detailFoot"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ============ MODAL: EXPORT PDF ============ -->
+<div class="overlay" id="exportOverlay">
+  <div class="modal" style="max-width:450px">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">Dokumentasi</div>
+        <h3>Export Takwim PDF</h3>
+      </div>
+      <button class="x-btn" onclick="closeExport()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="row2">
+        <div class="grp"><label>Dari Tarikh</label><input type="date" id="exMula"></div>
+        <div class="grp"><label>Hingga Tarikh</label><input type="date" id="exTamat"></div>
+      </div>
+      <div class="grp">
+        <label>Sektor Disertakan (ikut tapisan semasa)</label>
+        <div id="exNote" style="font-size:.82rem;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;line-height:1.5"></div>
+      </div>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:4px">Disusun ikut bulan — grid ringkas berwarna + jadual kronologi penuh setiap bulan, lengkap dengan kepala surat dan nombor muka surat.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeExport()">Batal</button>
+      <button class="btn-save" id="exBtn" onclick="generatePDF()">Jana PDF</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =================== KONFIGURASI =================== */
+// >>> GANTIKAN dengan URL Web App GAS anda (berakhir dengan /exec) <<<
+const GAS_URL = "TAMPAL_URL_GAS_DI_SINI";
+
+/* =================== PWA =================== */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault(); deferredPrompt = e;
+  const b=document.getElementById('installBtn'); if(b) b.style.display='block';
+});
+window.addEventListener('appinstalled', ()=>{
+  deferredPrompt=null;
+  const b=document.getElementById('installBtn'); if(b) b.style.display='none';
+});
+async function pasangApp(){
+  if(!deferredPrompt){ toast('Buka menu pelayar → "Tambah ke Skrin Utama"'); return; }
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt=null;
+  document.getElementById('installBtn').style.display='none';
+}
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+
+/* =================== KEADAAN (in-memory) =================== */
+let SESSION = null;          // {nama, peranan, sektor, ...}
+let SEKTOR = [];             // [{nama, warna}]
+let VIP = [];                // [string]
+let VENUE = [];              // [string]
+let PROGRAM = [];            // [{...}]
+let WARNA = {};              // {namaSektor: hex}
+let aktifSektor = new Set(); // sektor yang ditapis (papar)
+let calendar = null;
+
+/* =================== API HELPER =================== */
+async function api(action, payload){
+  const res = await fetch(GAS_URL, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'}, // elak CORS preflight
+    body: JSON.stringify({ action, payload, auth: SESSION })
+  });
+  return res.json();
+}
+
+/* =================== LOGIN =================== */
+async function doLogin(){
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('loginErr');
+  const u = document.getElementById('liUser').value.trim();
+  const p = document.getElementById('liPass').value;
+  if(!u || !p){ showLoginErr('Sila isi nama pengguna dan kata laluan.'); return; }
+  if(GAS_URL.includes('TAMPAL_URL')){ showLoginErr('GAS_URL belum ditetapkan dalam kod.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Menyemak…'; err.style.display='none';
+  try{
+    const r = await api('login', { username:u, password:p });
+    if(!r.ok){ showLoginErr(r.error || 'Log masuk gagal.'); return; }
+    SESSION = r.user;
+    document.getElementById('login').style.display='none';
+    document.getElementById('app').style.display='flex';
+    await initApp();
+  }catch(e){ showLoginErr('Ralat sambungan. Semak URL GAS / talian.'); }
+  finally{ btn.disabled=false; btn.textContent='Log Masuk'; }
+}
+function showLoginErr(m){ const e=document.getElementById('loginErr'); e.textContent=m; e.style.display='block'; }
+document.getElementById('liPass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+
+function logout(){ SESSION=null; location.reload(); }
+
+/* =================== INIT =================== */
+async function initApp(){
+  // header pengguna
+  document.getElementById('uName').textContent = SESSION.nama;
+  document.getElementById('uRole').textContent = SESSION.peranan +
+    (SESSION.peranan==='Admin Sektor' && SESSION.sektor ? ' · '+ringkasSektor(SESSION.sektor) : '');
+
+  // butang tambah hanya untuk admin
+  if(SESSION.peranan!=='Pengguna JPN')
+    document.getElementById('addBtn').style.display='flex';
+
+  const r = await api('bootstrap', {});
+  if(!r.ok){ toast(r.error||'Gagal memuatkan data','err'); return; }
+  SEKTOR=r.sektor; VIP=r.vip; VENUE=r.venue; PROGRAM=r.program;
+  SEKTOR.forEach(s=>{ WARNA[s.nama]=s.warna; aktifSektor.add(s.nama); });
+
+  buildSektorFilter();
+  buildCalendar();
+}
+
+function ringkasSektor(n){ return n.replace('Sektor ','').slice(0,22); }
+
+/* =================== PENAPIS SEKTOR =================== */
+function buildSektorFilter(){
+  const box=document.getElementById('sektorFilter'); box.innerHTML='';
+  SEKTOR.forEach(s=>{
+    const el=document.createElement('label'); el.className='sektor-item';
+    el.innerHTML=`<input type="checkbox" checked data-s="${esc(s.nama)}" onchange="toggleSektor(this)">
+      <span class="swatch" style="background:${s.warna}"></span>
+      <span class="lbl">${esc(s.nama.replace('Sektor ',''))}</span>`;
+    box.appendChild(el);
+  });
+}
+function toggleSektor(cb){
+  const n=cb.getAttribute('data-s');
+  cb.checked ? aktifSektor.add(n) : aktifSektor.delete(n);
+  refreshEvents();
+}
+function setAllSektor(on){
+  document.querySelectorAll('#sektorFilter input').forEach(cb=>{ cb.checked=on; });
+  aktifSektor.clear();
+  if(on) SEKTOR.forEach(s=>aktifSektor.add(s.nama));
+  refreshEvents();
+}
+
+/* =================== KALENDAR =================== */
+function buildCalendar(){
+  document.getElementById('calWrap').innerHTML='<div id="calendar"></div>';
+  calendar=new FullCalendar.Calendar(document.getElementById('calendar'),{
+    locale:'ms', height:'auto', firstDay:1,
+    headerToolbar:{left:'prev,next today',center:'title',right:'dayGridMonth,timeGridWeek,listMonth'},
+    buttonText:{today:'Hari Ini',month:'Bulan',week:'Minggu',list:'Senarai'},
+    events: buildEvents(),
+    eventClick: info=>openDetail(info.event.extendedProps.raw),
+    dayMaxEvents:3, displayEventTime:false
+  });
+  calendar.render();
+}
+function buildEvents(){
+  return PROGRAM.filter(p=>aktifSektor.has(p.sektor)).map(p=>({
+    title:p.nama, start:p.mula, end:plusOneDay(p.tamat||p.mula), allDay:true,
+    backgroundColor:WARNA[p.sektor]||'#888', borderColor:WARNA[p.sektor]||'#888',
+    extendedProps:{raw:p}
+  }));
+}
+function refreshEvents(){
+  if(!calendar) return;
+  calendar.removeAllEvents();
+  calendar.addEventSource(buildEvents());
+}
+function plusOneDay(d){ // FullCalendar end (allDay) bersifat exclusive
+  const dt=new Date(d+'T00:00:00'); dt.setDate(dt.getDate()+1);
+  return dt.toISOString().slice(0,10);
+}
+
+/* =================== BORANG (Tambah/Edit) =================== */
+function isiSektorDropdown(){
+  const sel=document.getElementById('fSektor'); sel.innerHTML='';
+  let senarai=SEKTOR;
+  // Admin Sektor: hanya sektor sendiri
+  if(SESSION.peranan==='Admin Sektor') senarai=SEKTOR.filter(s=>s.nama===SESSION.sektor);
+  senarai.forEach(s=>{ const o=document.createElement('option'); o.value=s.nama; o.textContent=s.nama; sel.appendChild(o); });
+  sel.disabled = (SESSION.peranan==='Admin Sektor');
+}
+function isiVenueDropdown(val){
+  const sel=document.getElementById('fVenueSel'); sel.innerHTML='';
+  ['',...VENUE,'__lain__'].forEach(v=>{
+    const o=document.createElement('option');
+    if(v===''){o.value='';o.textContent='— Pilih tempat —';}
+    else if(v==='__lain__'){o.value='__lain__';o.textContent='Lain-lain (taip sendiri)…';}
+    else{o.value=v;o.textContent=v;}
+    sel.appendChild(o);
+  });
+  const lain=document.getElementById('fVenueLain');
+  if(val && VENUE.indexOf(val)===-1){ sel.value='__lain__'; lain.style.display='block'; lain.value=val; }
+  else{ sel.value=val||''; lain.style.display='none'; lain.value=''; }
+}
+function onVenueChange(){
+  const lain=document.getElementById('fVenueLain');
+  lain.style.display = document.getElementById('fVenueSel').value==='__lain__' ? 'block':'none';
+}
+function isiVipChips(terpilih){
+  const box=document.getElementById('fVip'); box.innerHTML='';
+  const set=new Set(terpilih||[]);
+  VIP.forEach(v=>{
+    const chip=document.createElement('label'); chip.className='vip-chip'+(set.has(v)?' on':'');
+    chip.innerHTML=`<input type="checkbox" value="${esc(v)}" ${set.has(v)?'checked':''}> ${esc(v)}`;
+    chip.querySelector('input').addEventListener('change',function(){ chip.classList.toggle('on',this.checked); });
+    box.appendChild(chip);
+  });
+}
+
+function openForm(prog){
+  isiSektorDropdown();
+  if(prog){ // edit
+    document.getElementById('formEyebrow').textContent='Kemaskini Entri';
+    document.getElementById('formTitle').textContent='Edit Program';
+    document.getElementById('fId').value=prog.id;
+    document.getElementById('fNama').value=prog.nama||'';
+    document.getElementById('fSektor').value=prog.sektor;
+    document.getElementById('fUnit').value=prog.unit||'';
+    document.getElementById('fPegawai').value=prog.pegawai||'';
+    document.getElementById('fMula').value=prog.mula||'';
+    document.getElementById('fTamat').value=prog.tamat||'';
+    isiVenueDropdown(prog.tempat||'');
+    isiVipChips(prog.vip||[]);
+    document.getElementById('delBtn').style.display='inline-block';
+  }else{ // baharu
+    document.getElementById('formEyebrow').textContent='Entri Baharu';
+    document.getElementById('formTitle').textContent='Tambah Program';
+    document.getElementById('fId').value='';
+    ['fNama','fUnit','fPegawai','fMula','fTamat'].forEach(id=>document.getElementById(id).value='');
+    if(SESSION.peranan==='Admin Sektor') document.getElementById('fSektor').value=SESSION.sektor;
+    isiVenueDropdown('');
+    isiVipChips([]);
+    document.getElementById('delBtn').style.display='none';
+  }
+  document.getElementById('clashArea').innerHTML='';
+  document.getElementById('formOverlay').classList.add('show');
+}
+function closeForm(){ document.getElementById('formOverlay').classList.remove('show'); }
+
+function bacaBorang(){
+  const sel=document.getElementById('fVenueSel').value;
+  const tempat = sel==='__lain__' ? document.getElementById('fVenueLain').value.trim() : sel;
+  const vip=[...document.querySelectorAll('#fVip input:checked')].map(i=>i.value);
+  return {
+    id:document.getElementById('fId').value,
+    sektor:document.getElementById('fSektor').value,
+    nama:document.getElementById('fNama').value.trim(),
+    unit:document.getElementById('fUnit').value.trim(),
+    pegawai:document.getElementById('fPegawai').value.trim(),
+    mula:document.getElementById('fMula').value,
+    tamat:document.getElementById('fTamat').value || document.getElementById('fMula').value,
+    tempat, vip
+  };
+}
+
+async function doSave(){
+  const p=bacaBorang();
+  if(!p.nama){ toast('Sila isi Nama Program','err'); return; }
+  if(!p.mula){ toast('Sila isi Tarikh Mula','err'); return; }
+  if(p.tamat && p.tamat<p.mula){ toast('Tarikh Tamat tak boleh sebelum Tarikh Mula','err'); return; }
+
+  const btn=document.getElementById('saveBtn'); btn.disabled=true; btn.textContent='Menyimpan…';
+  try{
+    const r=await api('saveProgram',p);
+    if(!r.ok){ toast(r.error||'Gagal menyimpan','err'); return; }
+
+    // kemaskini cache tempatan
+    p.id=r.id; p.kemaskini=new Date().toISOString().slice(0,10); p.oleh=SESSION.nama;
+    const idx=PROGRAM.findIndex(x=>x.id===r.id);
+    if(idx>-1) PROGRAM[idx]=p; else PROGRAM.push(p);
+    refreshEvents();
+
+    if(r.clashes && r.clashes.length){
+      // tunjuk amaran dalam borang, jangan tutup
+      paparClash(r.clashes);
+      toast('Disimpan — tetapi ada pertindihan dikesan','err');
+    }else{
+      closeForm();
+      toast('Program berjaya disimpan ✓');
+    }
+  }catch(e){ toast('Ralat sambungan','err'); }
+  finally{ btn.disabled=false; btn.textContent='Simpan'; }
+}
+function paparClash(list){
+  const html='<div class="clash-banner"><h4>⚠ Amaran Pertindihan</h4><ul>'+
+    list.map(c=>`<li><b>[${c.jenis}]</b> ${esc(c.mesej)}</li>`).join('')+
+    '</ul></div>';
+  document.getElementById('clashArea').innerHTML=html;
+  document.querySelector('#formOverlay .modal').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+async function doDelete(){
+  const id=document.getElementById('fId').value;
+  if(!id) return;
+  if(!confirm('Padam program ini? Tindakan ini kekal.')) return;
+  const r=await api('deleteProgram',{id});
+  if(!r.ok){ toast(r.error||'Gagal memadam','err'); return; }
+  PROGRAM=PROGRAM.filter(x=>x.id!==id);
+  refreshEvents(); closeForm(); toast('Program dipadam');
+}
+
+/* =================== DETAIL =================== */
+function openDetail(p){
+  document.getElementById('dTitle').textContent=p.nama;
+  const tempoh = p.mula===p.tamat ? fmtTarikh(p.mula) : fmtTarikh(p.mula)+' – '+fmtTarikh(p.tamat);
+  const rows=[
+    ['Sektor', `<span class="sektor-tag" style="background:${WARNA[p.sektor]||'#888'}">${esc(p.sektor)}</span>`],
+    ['Unit', esc(p.unit)||'—'],
+    ['Pegawai', esc(p.pegawai)||'—'],
+    ['Tarikh', tempoh],
+    ['Tempat', esc(p.tempat)||'—'],
+    ['VIP', (p.vip&&p.vip.length)?p.vip.map(esc).join(', '):'—'],
+    ['Kemaskini', p.kemaskini?`${fmtTarikh(p.kemaskini)} · ${esc(p.oleh||'')}`:'—']
+  ];
+  document.getElementById('detailBody').innerHTML=
+    rows.map(r=>`<div class="detail-row"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`).join('');
+
+  // kebenaran edit
+  const foot=document.getElementById('detailFoot');
+  const boleh = SESSION.peranan==='Admin Utama' ||
+                (SESSION.peranan==='Admin Sektor' && SESSION.sektor===p.sektor);
+  foot.innerHTML = boleh
+    ? `<button class="btn-cancel" onclick="closeDetail()">Tutup</button>
+       <button class="btn-save" onclick="closeDetail();openForm(getProg('${p.id}'))">Edit Program</button>`
+    : `<button class="btn-cancel" onclick="closeDetail()">Tutup</button>`;
+  document.getElementById('detailOverlay').classList.add('show');
+}
+function closeDetail(){ document.getElementById('detailOverlay').classList.remove('show'); }
+function getProg(id){ return PROGRAM.find(x=>x.id===id); }
+
+/* =================== EXPORT PDF =================== */
+const BULAN_PENUH=['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
+let LOGO_CACHE=null;
+
+function openExport(){
+  const yr=new Date().getFullYear();
+  document.getElementById('exMula').value=yr+'-01-01';
+  document.getElementById('exTamat').value=yr+'-12-31';
+  const aktif=SEKTOR.filter(s=>aktifSektor.has(s.nama));
+  document.getElementById('exNote').textContent =
+    (aktifSektor.size===SEKTOR.length)
+      ? 'Semua sektor ('+SEKTOR.length+')'
+      : (aktif.length ? aktif.map(s=>s.nama.replace('Sektor ','')).join(', ') : '⚠ Tiada sektor dipilih');
+  document.getElementById('exportOverlay').classList.add('show');
+}
+function closeExport(){ document.getElementById('exportOverlay').classList.remove('show'); }
+
+function getLogo(){
+  if(LOGO_CACHE!==null) return Promise.resolve(LOGO_CACHE);
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const c=document.createElement('canvas'); c.width=img.width; c.height=img.height;
+        c.getContext('2d').drawImage(img,0,0);
+        LOGO_CACHE=c.toDataURL('image/png');
+      }catch(e){ LOGO_CACHE=false; }
+      res(LOGO_CACHE);
+    };
+    img.onerror=()=>{ LOGO_CACHE=false; res(false); };
+    img.src='logo.png';
+  });
+}
+function pad(n){ return String(n).padStart(2,'0'); }
+function hexToRgb(h){
+  h=String(h||'#888888').replace('#',''); if(h.length===3) h=h.split('').map(x=>x+x).join('');
+  return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];
+}
+function fmtShort(d){ const b=['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'];
+  const t=new Date(d+'T00:00:00'); return t.getDate()+' '+b[t.getMonth()]; }
+function tarikhRange(p){ return (!p.tamat||p.tamat===p.mula) ? fmtShort(p.mula) : fmtShort(p.mula)+'–'+fmtShort(p.tamat); }
+
+async function generatePDF(){
+  const start=document.getElementById('exMula').value;
+  const end=document.getElementById('exTamat').value;
+  if(!start||!end){ toast('Sila isi julat tarikh','err'); return; }
+  if(end<start){ toast('Tarikh akhir tak boleh sebelum tarikh mula','err'); return; }
+  if(aktifSektor.size===0){ toast('Sila pilih sekurang-kurangnya satu sektor','err'); return; }
+  if(!window.jspdf){ toast('Pustaka PDF belum dimuat. Cuba semula bila ada talian.','err'); return; }
+
+  const btn=document.getElementById('exBtn'); btn.disabled=true; btn.textContent='Menjana…';
+  try{
+    const logo=await getLogo();
+    const { jsPDF }=window.jspdf;
+    const doc=new jsPDF({unit:'mm',format:'a4'});
+
+    const PW=210, PH=297, M=12, TOP=34, FOOT=14;
+    const NAVY=[15,41,66], BRASS=[184,134,11];
+
+    // tapis & susun ikut bulan (ikut tarikh mula)
+    const items=PROGRAM
+      .filter(p=>aktifSektor.has(p.sektor) && p.mula>=start && p.mula<=end)
+      .sort((a,b)=>a.mula.localeCompare(b.mula));
+    if(!items.length){ toast('Tiada program dalam julat/tapisan ini','err'); return; }
+
+    const byMonth={};
+    items.forEach(p=>{ const k=p.mula.slice(0,7); (byMonth[k]=byMonth[k]||[]).push(p); });
+    const months=Object.keys(byMonth).sort();
+    const sektorPresent=[...new Set(items.map(p=>p.sektor))]
+      .sort((a,b)=>SEKTOR.findIndex(s=>s.nama===a)-SEKTOR.findIndex(s=>s.nama===b));
+
+    const tempoh=fmtTarikh(start)+' – '+fmtTarikh(end);
+    const sektorNote=(aktifSektor.size===SEKTOR.length)?'Semua sektor':(sektorPresent.length+' sektor');
+
+    let y=TOP;
+    const newPage=()=>{ doc.addPage(); y=TOP; };
+    const need=h=>{ if(y+h>PH-FOOT) newPage(); };
+
+    // --- Petunjuk warna sektor (muka surat 1) ---
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...NAVY);
+    doc.text('Petunjuk Warna Sektor', M, y+2); y+=6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(45);
+    let lx=M;
+    sektorPresent.forEach(s=>{
+      const name=s.replace('Sektor ',''); const w=doc.getTextWidth(name)+8;
+      if(lx+w>PW-M){ lx=M; y+=5.5; }
+      doc.setFillColor(...hexToRgb(WARNA[s])); doc.roundedRect(lx,y-2.6,3.2,3.2,0.6,0.6,'F');
+      doc.text(name, lx+4.6, y); lx+=w+2;
+    });
+    y+=9;
+
+    // --- Setiap bulan ---
+    const wd=['Isn','Sel','Rab','Kha','Jum','Sab','Ahd'];
+    months.forEach(key=>{
+      const [yr,mo]=key.split('-').map(Number); const month=mo-1;
+      const progs=byMonth[key];
+      const days=new Date(yr,month+1,0).getDate();
+      const offset=(new Date(yr,month,1).getDay()+6)%7; // Isnin=0
+      const rows=Math.ceil((offset+days)/7);
+      const cw=(PW-2*M)/7, ch=9.5;
+      const gridH=5/*weekday*/+rows*ch;
+
+      need(11/*tajuk*/+gridH+16/*sebahagian jadual*/);
+
+      // tajuk bulan
+      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...NAVY);
+      doc.text(BULAN_PENUH[month].toUpperCase()+' '+yr, M, y+5);
+      doc.setDrawColor(...BRASS); doc.setLineWidth(0.5); doc.line(M,y+7,M+52,y+7);
+      y+=11;
+
+      // warna program setiap hari (termasuk program merentas bulan)
+      const mS=`${yr}-${pad(mo)}-01`, mE=`${yr}-${pad(mo)}-${pad(days)}`;
+      const touch=PROGRAM.filter(p=>aktifSektor.has(p.sektor)&&p.mula<=mE&&(p.tamat||p.mula)>=mS);
+      const dayCol={};
+      for(let d=1;d<=days;d++){
+        const ds=`${yr}-${pad(mo)}-${pad(d)}`; const set=new Set();
+        touch.forEach(p=>{ if(p.mula<=ds&&(p.tamat||p.mula)>=ds) set.add(WARNA[p.sektor]); });
+        if(set.size) dayCol[d]=[...set];
+      }
+
+      // header hari
+      doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(110);
+      wd.forEach((w,c)=>doc.text(w, M+c*cw+cw/2, y+3, {align:'center'}));
+      y+=5;
+      // sel grid
+      const top=y; let dn=1;
+      doc.setLineWidth(0.1); doc.setDrawColor(212);
+      for(let r=0;r<rows;r++){
+        for(let c=0;c<7;c++){
+          const idx=r*7+c, x=M+c*cw, cy=top+r*ch;
+          doc.rect(x,cy,cw,ch);
+          if(idx>=offset && dn<=days){
+            doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(70);
+            doc.text(String(dn), x+1.5, cy+3);
+            const cols=dayCol[dn];
+            if(cols){ let dx=x+1.9; const dy=cy+ch-2.2;
+              cols.slice(0,7).forEach(hex=>{ doc.setFillColor(...hexToRgb(hex)); doc.circle(dx,dy,0.9,'F'); dx+=2.3; }); }
+            dn++;
+          }
+        }
+      }
+      y=top+rows*ch+5;
+
+      // jadual kronologi bulan ini
+      const body=[], meta=[];
+      progs.forEach((p,i)=>{
+        body.push([ i+1, tarikhRange(p), p.nama||'-', p.sektor.replace('Sektor ',''),
+                    p.unit||'-', p.pegawai||'-', p.tempat||'-', (p.vip&&p.vip.length)?p.vip.join(', '):'-' ]);
+        meta.push(hexToRgb(WARNA[p.sektor]));
+      });
+      doc.autoTable({
+        head:[['Bil','Tarikh','Program','Sektor','Unit','Pegawai','Tempat','VIP']],
+        body, startY:y, margin:{top:TOP,bottom:FOOT,left:M,right:M}, theme:'grid',
+        styles:{fontSize:7.3,cellPadding:1.6,valign:'top',lineColor:[227,220,201],lineWidth:0.1,overflow:'linebreak'},
+        headStyles:{fillColor:NAVY,textColor:[255,255,255],fontSize:7.3,fontStyle:'bold'},
+        columnStyles:{0:{cellWidth:8,halign:'center'},1:{cellWidth:19},2:{cellWidth:38},
+          3:{cellWidth:25,fontStyle:'bold'},4:{cellWidth:18},5:{cellWidth:22},6:{cellWidth:22}},
+        didParseCell:d=>{
+          if(d.section==='body'&&d.column.index===3){
+            const c=meta[d.row.index]; d.cell.styles.fillColor=c;
+            const lum=(c[0]*299+c[1]*587+c[2]*114)/1000;
+            d.cell.styles.textColor= lum>150 ? [26,26,26] : [255,255,255];
+          }
+        }
+      });
+      y=doc.lastAutoTable.finalY+10;
+    });
+
+    // --- Kepala & kaki surat setiap muka surat (pas akhir) ---
+    const genDate=fmtTarikh(new Date().toISOString().slice(0,10));
+    const total=doc.getNumberOfPages();
+    for(let i=1;i<=total;i++){
+      doc.setPage(i);
+      if(logo) doc.addImage(logo,'PNG',M,7,18,18);
+      doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...NAVY);
+      doc.text('JABATAN PENDIDIKAN NEGERI KEDAH', M+22, 13);
+      doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(60);
+      doc.text('Takwim Aktiviti  •  '+tempoh, M+22, 19);
+      doc.setFontSize(7.5); doc.setTextColor(120);
+      doc.text('Sektor: '+sektorNote, M+22, 24);
+      doc.setDrawColor(...BRASS); doc.setLineWidth(0.6); doc.line(M,28,PW-M,28);
+      // kaki
+      doc.setDrawColor(220); doc.setLineWidth(0.2); doc.line(M,PH-10,PW-M,PH-10);
+      doc.setFontSize(7.5); doc.setTextColor(120);
+      doc.text('Dijana '+genDate+'  •  Takwim JPN Kedah Interaktif', M, PH-6);
+      doc.text('Muka surat '+i+' / '+total, PW-M, PH-6, {align:'right'});
+    }
+
+    doc.save('Takwim-JPN-Kedah_'+start+'_hingga_'+end+'.pdf');
+    closeExport();
+    toast('PDF berjaya dijana ✓');
+  }catch(e){
+    console.error(e); toast('Gagal menjana PDF','err');
+  }finally{ btn.disabled=false; btn.textContent='Jana PDF'; }
+}
+
+/* =================== UTIL =================== */
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtTarikh(d){
+  if(!d) return '—';
+  const b=['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'];
+  const t=new Date(d+'T00:00:00');
+  return t.getDate()+' '+b[t.getMonth()]+' '+t.getFullYear();
+}
+let toastT;
+function toast(msg,type){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show'+(type==='err'?' err':'');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.className='toast',3200);
+}
+// tutup overlay bila klik latar
+['formOverlay','detailOverlay','exportOverlay'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) e.target.classList.remove('show'); });
+});
+</script>
+</body>
+</html>
