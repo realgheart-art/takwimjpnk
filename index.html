@@ -39,29 +39,15 @@ h1,h2,h3{font-family:'Fraunces',serif;font-weight:600;letter-spacing:-.01em}
 button{font-family:inherit;cursor:pointer;border:none;background:none}
 input,select{font-family:inherit;font-size:.92rem}
 
-/* ---------- LOGIN ---------- */
-#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(120% 120% at 80% 0%, var(--navy-soft), var(--navy) 60%);z-index:50;padding:20px}
-.login-card{background:var(--paper);width:100%;max-width:400px;border-radius:18px;padding:36px 34px 30px;box-shadow:var(--shadow);
-  border-top:5px solid var(--brass);text-align:center}
-.login-logo{width:120px;height:120px;object-fit:contain;margin:0 auto 14px;display:block;
+/* ---------- LOGIN (modal) ---------- */
+.login-logo{width:96px;height:96px;object-fit:contain;margin:0 auto 12px;display:block;
   filter:drop-shadow(0 6px 14px rgba(15,41,66,.22))}
-.login-card h1{font-size:1.55rem;color:var(--navy);line-height:1.15;margin-bottom:6px}
-.login-card p.sub{color:var(--muted);font-size:.86rem;margin-bottom:24px}
-.field{margin-bottom:16px;text-align:left}
-.field label{display:block;font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:6px;letter-spacing:.02em}
-.field input{width:100%;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;background:#fff;transition:.15s}
-.field input:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(184,134,11,.12)}
-.btn-primary{width:100%;background:var(--navy);color:#fff;padding:12px;border-radius:10px;font-weight:600;font-size:.95rem;transition:.15s}
-.btn-primary:hover{background:var(--navy-2)}
-.btn-primary:disabled{opacity:.6;cursor:wait}
 .login-err{background:#fdeceb;color:var(--danger);font-size:.82rem;padding:10px 12px;border-radius:8px;margin-bottom:14px;display:none;text-align:left}
-.install-link{display:block;width:100%;margin-top:12px;color:var(--navy);font-size:.82rem;font-weight:600;padding:9px;
-  border:1.5px dashed var(--brass);border-radius:10px;background:transparent;transition:.15s}
-.install-link:hover{background:#fff8e6}
+.btn-login{background:var(--brass);color:var(--navy);font-size:.82rem;font-weight:700;padding:8px 16px;border-radius:8px;transition:.15s}
+.btn-login:hover{background:var(--brass-soft)}
 
 /* ---------- APP SHELL ---------- */
-#app{display:none;min-height:100vh;flex-direction:column}
+#app{display:flex;min-height:100vh;flex-direction:column}
 .topbar{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;
   padding:14px 22px;gap:16px;position:sticky;top:0;z-index:20}
 .brand{display:flex;align-items:center;gap:12px;min-width:0}
@@ -181,27 +167,7 @@ input,select{font-family:inherit;font-size:.92rem}
 </head>
 <body>
 
-<!-- ============ LOGIN ============ -->
-<div id="login">
-  <div class="login-card">
-    <img src="logo.png" alt="Takwim Interaktif JPN Kedah" class="login-logo">
-    <h1>Takwim JPN Interaktif</h1>
-    <p class="sub">Sistem perancangan takwim aktiviti merentas sektor</p>
-    <div class="login-err" id="loginErr"></div>
-    <div class="field">
-      <label>Nama Pengguna</label>
-      <input type="text" id="liUser" autocomplete="username" placeholder="cth: admin">
-    </div>
-    <div class="field">
-      <label>Kata Laluan</label>
-      <input type="password" id="liPass" autocomplete="current-password" placeholder="••••••••">
-    </div>
-    <button class="btn-primary" id="loginBtn" onclick="doLogin()">Log Masuk</button>
-    <button class="install-link" id="installBtn" onclick="pasangApp()" style="display:none">⤓ Pasang aplikasi ke peranti</button>
-  </div>
-</div>
-
-<!-- ============ APP ============ -->
+<!-- ============ APP (paparan lalai: Awam) ============ -->
 <div id="app">
   <div class="topbar">
     <div class="brand">
@@ -212,11 +178,15 @@ input,select{font-family:inherit;font-size:.92rem}
       </div>
     </div>
     <div class="user-box">
-      <div class="user-meta">
-        <div class="nm" id="uName">—</div>
-        <span class="role-badge" id="uRole">—</span>
+      <button class="btn-ghost" id="installBtn" onclick="pasangApp()" style="display:none">⤓ Pasang</button>
+      <button class="btn-login" id="topLoginBtn" onclick="openLogin()">Log Masuk</button>
+      <div id="userState" style="display:none;align-items:center;gap:12px">
+        <div class="user-meta">
+          <div class="nm" id="uName">—</div>
+          <span class="role-badge" id="uRole">—</span>
+        </div>
+        <button class="btn-ghost" onclick="logout()">Log Keluar</button>
       </div>
-      <button class="btn-ghost" onclick="logout()">Log Keluar</button>
     </div>
   </div>
 
@@ -322,6 +292,32 @@ input,select{font-family:inherit;font-size:.92rem}
   </div>
 </div>
 
+<!-- ============ MODAL: LOG MASUK ============ -->
+<div class="overlay" id="loginOverlay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">JPN Kedah</div>
+        <h3>Log Masuk</h3>
+      </div>
+      <button class="x-btn" onclick="closeLogin()">×</button>
+    </div>
+    <div class="modal-body" style="text-align:center">
+      <img src="logo.png" alt="" class="login-logo">
+      <div class="login-err" id="loginErr"></div>
+      <div class="grp" style="text-align:left"><label>Nama Pengguna</label>
+        <input type="text" id="liUser" autocomplete="username" placeholder="cth: admin"></div>
+      <div class="grp" style="text-align:left"><label>Kata Laluan</label>
+        <input type="password" id="liPass" autocomplete="current-password" placeholder="••••••••"></div>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:4px">Orang awam tak perlu log masuk — takwim boleh dilihat terus.</p>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeLogin()">Batal</button>
+      <button class="btn-save" id="loginBtn" onclick="doLogin()">Log Masuk</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ============ MODAL: EXPORT PDF ============ -->
@@ -355,7 +351,7 @@ input,select{font-family:inherit;font-size:.92rem}
 <script>
 /* =================== KONFIGURASI =================== */
 // >>> GANTIKAN dengan URL Web App GAS anda (berakhir dengan /exec) <<<
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzjVHkAuOKJF_CyzyKj5yn8CoGXSJJCwdJQiadEYyRQYkrYG7sogeWujrXn7p5KC4Xd/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwEiri2XVS1pXbFJDEkMN-y2LL5torVKGHjfHMUmJM4I7uf4QOMquFbz3ZrrtdZAX8/exec";
 
 /* =================== PWA =================== */
 let deferredPrompt = null;
@@ -398,41 +394,60 @@ async function api(action, payload){
   return res.json();
 }
 
-/* =================== LOGIN =================== */
+/* =================== LOGIN / AUTH UI =================== */
+function openLogin(){
+  document.getElementById('loginErr').style.display='none';
+  document.getElementById('loginOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('liUser').focus(),60);
+}
+function closeLogin(){ document.getElementById('loginOverlay').classList.remove('show'); }
+
 async function doLogin(){
-  const btn = document.getElementById('loginBtn');
-  const err = document.getElementById('loginErr');
-  const u = document.getElementById('liUser').value.trim();
-  const p = document.getElementById('liPass').value;
+  const btn=document.getElementById('loginBtn');
+  const u=document.getElementById('liUser').value.trim();
+  const p=document.getElementById('liPass').value;
   if(!u || !p){ showLoginErr('Sila isi nama pengguna dan kata laluan.'); return; }
   if(GAS_URL.includes('TAMPAL_URL')){ showLoginErr('GAS_URL belum ditetapkan dalam kod.'); return; }
 
-  btn.disabled = true; btn.textContent = 'Menyemak…'; err.style.display='none';
+  btn.disabled=true; btn.textContent='Menyemak…'; document.getElementById('loginErr').style.display='none';
   try{
-    const r = await api('login', { username:u, password:p });
-    if(!r.ok){ showLoginErr(r.error || 'Log masuk gagal.'); return; }
-    SESSION = r.user;
-    document.getElementById('login').style.display='none';
-    document.getElementById('app').style.display='flex';
-    await initApp();
+    const r=await api('login',{username:u,password:p});
+    if(!r.ok){ showLoginErr(r.error||'Log masuk gagal.'); return; }
+    SESSION=r.user;
+    closeLogin();
+    document.getElementById('liUser').value=''; document.getElementById('liPass').value='';
+    renderAuthUI();
+    refreshEvents(); // supaya kebenaran edit terpakai pada butiran program
+    toast('Selamat datang, '+SESSION.nama);
   }catch(e){ showLoginErr('Ralat sambungan. Semak URL GAS / talian.'); }
   finally{ btn.disabled=false; btn.textContent='Log Masuk'; }
 }
 function showLoginErr(m){ const e=document.getElementById('loginErr'); e.textContent=m; e.style.display='block'; }
 document.getElementById('liPass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 
-function logout(){ SESSION=null; location.reload(); }
+function logout(){
+  SESSION=null;
+  closeForm(); closeDetail();
+  renderAuthUI();
+  refreshEvents();
+  toast('Anda telah log keluar');
+}
+
+function renderAuthUI(){
+  const logged=!!SESSION;
+  document.getElementById('topLoginBtn').style.display = logged ? 'none' : 'inline-block';
+  document.getElementById('userState').style.display   = logged ? 'flex' : 'none';
+  document.getElementById('addBtn').style.display       = logged ? 'flex' : 'none';
+  if(logged){
+    document.getElementById('uName').textContent = SESSION.nama;
+    document.getElementById('uRole').textContent = SESSION.peranan +
+      (SESSION.peranan==='Pengguna Sektor' && SESSION.sektor ? ' · '+ringkasSektor(SESSION.sektor) : '');
+  }
+}
 
 /* =================== INIT =================== */
 async function initApp(){
-  // header pengguna
-  document.getElementById('uName').textContent = SESSION.nama;
-  document.getElementById('uRole').textContent = SESSION.peranan +
-    (SESSION.peranan==='Admin Sektor' && SESSION.sektor ? ' · '+ringkasSektor(SESSION.sektor) : '');
-
-  // butang tambah hanya untuk admin
-  if(SESSION.peranan!=='Pengguna JPN')
-    document.getElementById('addBtn').style.display='flex';
+  renderAuthUI();
 
   // tunjuk semula spinner (penting bila "Cuba Semula")
   document.getElementById('calWrap').innerHTML =
@@ -540,10 +555,10 @@ function plusOneDay(d){ // FullCalendar end (allDay) bersifat exclusive
 function isiSektorDropdown(){
   const sel=document.getElementById('fSektor'); sel.innerHTML='';
   let senarai=SEKTOR;
-  // Admin Sektor: hanya sektor sendiri
-  if(SESSION.peranan==='Admin Sektor') senarai=SEKTOR.filter(s=>s.nama===SESSION.sektor);
+  // Pengguna Sektor: hanya sektor sendiri
+  if(SESSION && SESSION.peranan==='Pengguna Sektor') senarai=SEKTOR.filter(s=>s.nama===SESSION.sektor);
   senarai.forEach(s=>{ const o=document.createElement('option'); o.value=s.nama; o.textContent=s.nama; sel.appendChild(o); });
-  sel.disabled = (SESSION.peranan==='Admin Sektor');
+  sel.disabled = (SESSION && SESSION.peranan==='Pengguna Sektor');
 }
 function isiVenueDropdown(val){
   const sel=document.getElementById('fVenueSel'); sel.innerHTML='';
@@ -593,7 +608,7 @@ function openForm(prog){
     document.getElementById('formTitle').textContent='Tambah Program';
     document.getElementById('fId').value='';
     ['fNama','fUnit','fPegawai','fMula','fTamat'].forEach(id=>document.getElementById(id).value='');
-    if(SESSION.peranan==='Admin Sektor') document.getElementById('fSektor').value=SESSION.sektor;
+    if(SESSION && SESSION.peranan==='Pengguna Sektor') document.getElementById('fSektor').value=SESSION.sektor;
     isiVenueDropdown('');
     isiVipChips([]);
     document.getElementById('delBtn').style.display='none';
@@ -683,8 +698,8 @@ function openDetail(p){
 
   // kebenaran edit
   const foot=document.getElementById('detailFoot');
-  const boleh = SESSION.peranan==='Admin Utama' ||
-                (SESSION.peranan==='Admin Sektor' && SESSION.sektor===p.sektor);
+  const boleh = SESSION && (SESSION.peranan==='Admin' ||
+                (SESSION.peranan==='Pengguna Sektor' && SESSION.sektor===p.sektor));
   foot.innerHTML = boleh
     ? `<button class="btn-cancel" onclick="closeDetail()">Tutup</button>
        <button class="btn-save" onclick="closeDetail();openForm(getProg('${p.id}'))">Edit Program</button>`
@@ -905,9 +920,12 @@ function toast(msg,type){
   clearTimeout(toastT); toastT=setTimeout(()=>el.className='toast',3200);
 }
 // tutup overlay bila klik latar
-['formOverlay','detailOverlay','exportOverlay'].forEach(id=>{
+['formOverlay','detailOverlay','exportOverlay','loginOverlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) e.target.classList.remove('show'); });
 });
+
+// Boot terus sebagai Awam (Pilihan A)
+initApp();
 </script>
 </body>
 </html>
