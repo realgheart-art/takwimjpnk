@@ -1,7 +1,7 @@
 /* Takwim JPN — Service Worker
    Naikkan nombor versi (v1 -> v2) setiap kali index.html dikemas kini,
    supaya pengguna dapat versi terbaharu. */
-const CACHE = 'takwim-jpn-v4';
+const CACHE = 'takwim-jpn-v5';
 const SHELL = [
   './',
   'index.html',
@@ -40,7 +40,22 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Aset lain (ikon, font, FullCalendar CDN): cache-first
+  // Silang-domain (CDN: FullCalendar, jsPDF, font): NETWORK-FIRST.
+  // Ini elak menyajikan salinan cache yang rosak/tak lengkap.
+  if (url.origin !== self.location.origin) {
+    e.respondWith(
+      fetch(req).then(res => {
+        if (res && (res.ok || res.type === 'opaque')) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+        }
+        return res;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Sama-domain (shell, ikon): cache-first
   e.respondWith(
     caches.match(req).then(hit => hit || fetch(req).then(res => {
       const copy = res.clone();
