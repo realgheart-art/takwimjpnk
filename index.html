@@ -20,10 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<!-- FullCalendar & jsPDF dimuat secara dinamik dengan fallback pelbagai-CDN (lihat skrip di bawah) -->
 
 <style>
 :root{
@@ -374,6 +371,40 @@ if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
 
+/* =================== PEMUAT PUSTAKA (fallback pelbagai-CDN) =================== */
+const FC_CDNS=[
+  'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/6.1.15/index.global.min.js',
+  'https://unpkg.com/fullcalendar@6.1.15/index.global.min.js'
+];
+const JSPDF_CDNS=[
+  'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js'
+];
+const AUTOTABLE_CDNS=[
+  'https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
+  'https://unpkg.com/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'
+];
+function loadScript(src){
+  return new Promise((resolve,reject)=>{
+    const s=document.createElement('script'); s.src=src; s.async=true;
+    s.onload=()=>resolve(src); s.onerror=()=>reject(new Error('gagal: '+src));
+    document.head.appendChild(s);
+  });
+}
+async function ensureLib(check, urls){
+  if(check()) return true;
+  for(const u of urls){
+    try{ await loadScript(u); if(check()) return true; }catch(e){ /* cuba CDN seterusnya */ }
+  }
+  return check();
+}
+const hasFC   = ()=>!!window.FullCalendar;
+const hasJsPDF= ()=>!!(window.jspdf && window.jspdf.jsPDF);
+const hasAutoTable = ()=>!!(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable);
+
 /* =================== KEADAAN (in-memory) =================== */
 let SESSION = null;          // {nama, peranan, sektor, ...}
 let SEKTOR = [];             // [{nama, warna}]
@@ -477,9 +508,10 @@ async function initApp(){
   SEKTOR.forEach(s=>{ WARNA[s.nama]=s.warna; aktifSektor.add(s.nama); });
   buildSektorFilter();
 
-  if(!window.FullCalendar){
+  const okFC = await ensureLib(hasFC, FC_CDNS);
+  if(!okFC){
     showLoadError('Pustaka kalendar gagal dimuat.',
-      'Talian mungkin tersekat ketika memuat FullCalendar dari CDN. Muat semula halaman bila ada talian stabil.',
+      'Cuba dari 3 sumber CDN tetapi semua tak dapat dicapai — biasanya isu talian sementara. Semak sambungan & tekan Cuba Semula.',
       ''); return;
   }
   buildCalendar();
@@ -757,9 +789,12 @@ async function generatePDF(){
   if(!start||!end){ toast('Sila isi julat tarikh','err'); return; }
   if(end<start){ toast('Tarikh akhir tak boleh sebelum tarikh mula','err'); return; }
   if(aktifSektor.size===0){ toast('Sila pilih sekurang-kurangnya satu sektor','err'); return; }
-  if(!window.jspdf){ toast('Pustaka PDF belum dimuat. Cuba semula bila ada talian.','err'); return; }
 
-  const btn=document.getElementById('exBtn'); btn.disabled=true; btn.textContent='Menjana…';
+  const btn=document.getElementById('exBtn'); btn.disabled=true; btn.textContent='Menyediakan…';
+  // muat pustaka PDF (fallback pelbagai-CDN)
+  const okPdf = await ensureLib(hasJsPDF, JSPDF_CDNS) && await ensureLib(hasAutoTable, AUTOTABLE_CDNS);
+  if(!okPdf){ toast('Pustaka PDF gagal dimuat. Semak talian & cuba lagi.','err'); btn.disabled=false; btn.textContent='Jana PDF'; return; }
+  btn.textContent='Menjana…';
   try{
     const logo=await getLogo();
     const { jsPDF }=window.jspdf;
