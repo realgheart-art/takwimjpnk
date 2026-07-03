@@ -65,6 +65,9 @@ input,select{font-family:inherit;font-size:.92rem}
 .sidebar{width:280px;background:var(--paper-2);border-right:1px solid var(--line);padding:20px 18px;overflow-y:auto;flex-shrink:0}
 .sidebar h2{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;font-family:'Plus Jakarta Sans';font-weight:700}
 .filter-actions{display:flex;gap:8px;margin:10px 0 14px}
+.utama-filter{display:flex;align-items:center;gap:9px;background:#fff8e6;border:1.5px solid var(--brass-pale);
+  border-radius:9px;padding:9px 11px;margin-bottom:14px;cursor:pointer;font-size:.8rem;font-weight:600;color:var(--brass)}
+.utama-filter input{width:15px;height:15px;accent-color:var(--brass);cursor:pointer}
 .filter-actions button{font-size:.72rem;font-weight:600;color:var(--navy);padding:5px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;transition:.15s}
 .filter-actions button:hover{border-color:var(--brass)}
 .sektor-item{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;cursor:pointer;transition:.12s;font-size:.82rem}
@@ -92,6 +95,7 @@ input,select{font-family:inherit;font-size:.92rem}
 .fc .fc-button:hover{background:var(--navy-2)!important}
 .fc .fc-button-primary:not(:disabled).fc-button-active{background:var(--brass)!important;color:var(--navy)!important}
 .fc-event{border:none!important;font-size:.74rem;font-weight:600;padding:1px 5px;cursor:pointer;border-radius:5px!important}
+.fc-event.ev-utama{border:2px solid #b8860b!important;font-weight:700;box-shadow:0 0 0 1px rgba(184,134,11,.35)}
 .fc-daygrid-event{white-space:normal}
 .fc-col-header-cell-cushion,.fc-daygrid-day-number{color:var(--navy);text-decoration:none}
 
@@ -113,6 +117,12 @@ input,select{font-family:inherit;font-size:.92rem}
 .grp input,.grp select{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;background:#fff;transition:.15s}
 .grp input:focus,.grp select:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(184,134,11,.12)}
 .vip-box{border:1.5px solid var(--line);border-radius:9px;background:#fff;padding:8px;max-height:128px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px}
+.form-sec{font-family:'Plus Jakarta Sans';font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);
+  font-weight:700;margin:18px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.utama-toggle{display:flex;align-items:center;gap:10px;background:#fff8e6;border:1.5px solid var(--brass-pale);
+  border-radius:10px;padding:11px 13px;margin-bottom:4px;cursor:pointer;font-size:.86rem;color:var(--ink)}
+.utama-toggle input{width:17px;height:17px;accent-color:var(--brass);flex-shrink:0}
+.utama-toggle b{color:var(--brass)}
 .vip-chip{display:flex;align-items:center;gap:6px;font-size:.78rem;padding:5px 9px;border:1px solid var(--line);border-radius:99px;cursor:pointer;transition:.12s;user-select:none}
 .vip-chip input{accent-color:var(--navy)}
 .vip-chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
@@ -130,6 +140,8 @@ input,select{font-family:inherit;font-size:.92rem}
 .detail-row .k{flex-shrink:0;width:120px;font-weight:700;color:var(--muted);font-size:.78rem;letter-spacing:.02em;text-transform:uppercase;padding-top:1px}
 .detail-row .v{color:var(--ink)}
 .sektor-tag{display:inline-block;padding:3px 11px;border-radius:99px;color:#fff;font-size:.78rem;font-weight:600}
+.utama-badge{display:inline-block;background:linear-gradient(135deg,var(--brass),var(--brass-soft));color:var(--navy);
+  font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:99px;letter-spacing:.02em;margin-bottom:4px}
 
 /* clash warning */
 .clash-banner{background:#fff8e6;border:1.5px solid var(--brass-pale);border-radius:10px;padding:12px 14px;margin-bottom:14px}
@@ -189,6 +201,10 @@ input,select{font-family:inherit;font-size:.92rem}
 
   <div class="layout">
     <aside class="sidebar">
+      <label class="utama-filter" id="utamaFilterWrap">
+        <input type="checkbox" id="utamaFilter" onchange="toggleUtamaOnly(this)">
+        <span>★ Program Utama JPN sahaja</span>
+      </label>
       <h2>Tapis Mengikut Sektor</h2>
       <div class="filter-actions">
         <button onclick="setAllSektor(true)">Pilih semua</button>
@@ -228,8 +244,15 @@ input,select{font-family:inherit;font-size:.92rem}
     <div class="modal-body">
       <div id="clashArea"></div>
       <input type="hidden" id="fId">
+
+      <label class="utama-toggle" id="fUtamaWrap" style="display:none">
+        <input type="checkbox" id="fUtama">
+        <span>★ Tandakan sebagai <b>Program Utama JPN</b></span>
+      </label>
+
+      <div class="form-sec">Maklumat Program</div>
       <div class="grp">
-        <label>Nama Program</label>
+        <label>Nama Aktiviti / Program</label>
         <input type="text" id="fNama" placeholder="cth: Bengkel Penyelarasan Takwim 2026">
       </div>
       <div class="grp">
@@ -237,34 +260,43 @@ input,select{font-family:inherit;font-size:.92rem}
         <select id="fSektor"></select>
       </div>
       <div class="row2">
-        <div class="grp">
-          <label>Unit</label>
-          <input type="text" id="fUnit" placeholder="cth: Unit Data">
-        </div>
-        <div class="grp">
-          <label>Pegawai Bertanggungjawab</label>
-          <input type="text" id="fPegawai" placeholder="Nama pegawai">
-        </div>
+        <div class="grp"><label>Peringkat</label><input type="text" id="fPeringkat" placeholder="cth: Negeri"></div>
+        <div class="grp"><label>Kategori</label><input type="text" id="fKategori" placeholder="cth: Pemantauan"></div>
+      </div>
+
+      <div class="form-sec">Tarikh</div>
+      <div class="row2">
+        <div class="grp"><label>Tarikh Mula</label><input type="date" id="fMula"></div>
+        <div class="grp"><label>Tarikh Akhir</label><input type="date" id="fTamat"></div>
+      </div>
+
+      <div class="form-sec">Penganjur</div>
+      <div class="row2">
+        <div class="grp"><label>Unit</label><input type="text" id="fUnit" placeholder="cth: HEM"></div>
+        <div class="grp"><label>Sub Unit</label><input type="text" id="fSubUnit" placeholder="cth: Bantuan"></div>
       </div>
       <div class="row2">
-        <div class="grp">
-          <label>Tarikh Mula</label>
-          <input type="date" id="fMula">
-        </div>
-        <div class="grp">
-          <label>Tarikh Tamat</label>
-          <input type="date" id="fTamat">
-        </div>
+        <div class="grp"><label>Pegawai Meja (jawatan)</label><input type="text" id="fPegawaiMeja" placeholder="cth: Penolong Pengarah"></div>
+        <div class="grp"><label>Nama Pegawai</label><input type="text" id="fNamaPegawai" placeholder="Nama pegawai"></div>
+      </div>
+
+      <div class="form-sec">Tetamu & Tempat</div>
+      <div class="grp">
+        <label>Tetamu Utama / VIP (boleh pilih lebih dari satu)</label>
+        <div class="vip-box" id="fVip"></div>
       </div>
       <div class="grp">
         <label>Tempat</label>
         <select id="fVenueSel" onchange="onVenueChange()"></select>
         <input type="text" id="fVenueLain" placeholder="Taip tempat sendiri…" style="display:none;margin-top:8px">
       </div>
-      <div class="grp">
-        <label>VIP Terlibat (boleh pilih lebih dari satu)</label>
-        <div class="vip-box" id="fVip"></div>
+
+      <div class="form-sec">Sasaran & Peruntukan</div>
+      <div class="row2">
+        <div class="grp"><label>Sasaran</label><input type="text" id="fSasaran" placeholder="cth: Sekolah Rendah"></div>
+        <div class="grp"><label>Bil. Sasaran</label><input type="number" id="fBilSasaran" min="0" placeholder="cth: 30"></div>
       </div>
+      <div class="grp"><label>Peruntukan</label><input type="text" id="fPeruntukan" placeholder="cth: JPN"></div>
     </div>
     <div class="modal-foot">
       <button class="btn-del" id="delBtn" onclick="doDelete()" style="display:none">Padam</button>
@@ -348,7 +380,7 @@ input,select{font-family:inherit;font-size:.92rem}
 <script>
 /* =================== KONFIGURASI =================== */
 // >>> GANTIKAN dengan URL Web App GAS anda (berakhir dengan /exec) <<<
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwEiri2XVS1pXbFJDEkMN-y2LL5torVKGHjfHMUmJM4I7uf4QOMquFbz3ZrrtdZAX8/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbw90JtADtYF1TITvF4nz6ZNy2pk0xddah3WLDUz5qHPEn94Q__Y3nMBGVoeCB-BaQtI/exec";
 
 /* =================== PWA =================== */
 let deferredPrompt = null;
@@ -413,6 +445,7 @@ let VENUE = [];              // [string]
 let PROGRAM = [];            // [{...}]
 let WARNA = {};              // {namaSektor: hex}
 let aktifSektor = new Set(); // sektor yang ditapis (papar)
+let utamaOnly = false;       // penapis Program Utama sahaja
 let calendar = null;
 
 /* =================== API HELPER =================== */
@@ -546,6 +579,7 @@ function toggleSektor(cb){
   cb.checked ? aktifSektor.add(n) : aktifSektor.delete(n);
   refreshEvents();
 }
+function toggleUtamaOnly(cb){ utamaOnly=cb.checked; refreshEvents(); }
 function setAllSektor(on){
   document.querySelectorAll('#sektorFilter input').forEach(cb=>{ cb.checked=on; });
   aktifSektor.clear();
@@ -567,11 +601,15 @@ function buildCalendar(){
   calendar.render();
 }
 function buildEvents(){
-  return PROGRAM.filter(p=>aktifSektor.has(p.sektor)).map(p=>({
-    title:p.nama, start:p.mula, end:plusOneDay(p.tamat||p.mula), allDay:true,
-    backgroundColor:WARNA[p.sektor]||'#888', borderColor:WARNA[p.sektor]||'#888',
-    extendedProps:{raw:p}
-  }));
+  return PROGRAM
+    .filter(p=>aktifSektor.has(p.sektor) && (!utamaOnly || p.utama))
+    .map(p=>({
+      title:(p.utama?'★ ':'')+p.nama, start:p.mula, end:plusOneDay(p.tamat||p.mula), allDay:true,
+      backgroundColor:WARNA[p.sektor]||'#888',
+      borderColor: p.utama ? '#b8860b' : (WARNA[p.sektor]||'#888'),
+      classNames: p.utama ? ['ev-utama'] : [],
+      extendedProps:{raw:p}
+    }));
 }
 function refreshEvents(){
   if(!calendar) return;
@@ -622,24 +660,29 @@ function isiVipChips(terpilih){
 
 function openForm(prog){
   isiSektorDropdown();
+  const isAdmin = SESSION && SESSION.peranan==='Admin';
+  document.getElementById('fUtamaWrap').style.display = isAdmin ? 'flex' : 'none';
+  const set=(id,v)=>{ document.getElementById(id).value = v==null?'':v; };
+
   if(prog){ // edit
     document.getElementById('formEyebrow').textContent='Kemaskini Entri';
     document.getElementById('formTitle').textContent='Edit Program';
-    document.getElementById('fId').value=prog.id;
-    document.getElementById('fNama').value=prog.nama||'';
+    set('fId',prog.id); set('fNama',prog.nama); set('fPeringkat',prog.peringkat);
+    set('fKategori',prog.kategori); set('fMula',prog.mula); set('fTamat',prog.tamat);
+    set('fUnit',prog.unit); set('fSubUnit',prog.subUnit); set('fPegawaiMeja',prog.pegawaiMeja);
+    set('fNamaPegawai',prog.namaPegawai); set('fSasaran',prog.sasaran);
+    set('fBilSasaran',prog.bilSasaran); set('fPeruntukan',prog.peruntukan);
     document.getElementById('fSektor').value=prog.sektor;
-    document.getElementById('fUnit').value=prog.unit||'';
-    document.getElementById('fPegawai').value=prog.pegawai||'';
-    document.getElementById('fMula').value=prog.mula||'';
-    document.getElementById('fTamat').value=prog.tamat||'';
+    document.getElementById('fUtama').checked = !!prog.utama;
     isiVenueDropdown(prog.tempat||'');
     isiVipChips(prog.vip||[]);
     document.getElementById('delBtn').style.display='inline-block';
   }else{ // baharu
     document.getElementById('formEyebrow').textContent='Entri Baharu';
     document.getElementById('formTitle').textContent='Tambah Program';
-    document.getElementById('fId').value='';
-    ['fNama','fUnit','fPegawai','fMula','fTamat'].forEach(id=>document.getElementById(id).value='');
+    ['fId','fNama','fPeringkat','fKategori','fMula','fTamat','fUnit','fSubUnit',
+     'fPegawaiMeja','fNamaPegawai','fSasaran','fBilSasaran','fPeruntukan'].forEach(id=>set(id,''));
+    document.getElementById('fUtama').checked=false;
     if(SESSION && SESSION.peranan==='Pengguna Sektor') document.getElementById('fSektor').value=SESSION.sektor;
     isiVenueDropdown('');
     isiVipChips([]);
@@ -654,15 +697,19 @@ function bacaBorang(){
   const sel=document.getElementById('fVenueSel').value;
   const tempat = sel==='__lain__' ? document.getElementById('fVenueLain').value.trim() : sel;
   const vip=[...document.querySelectorAll('#fVip input:checked')].map(i=>i.value);
+  const g=id=>document.getElementById(id).value.trim();
   return {
     id:document.getElementById('fId').value,
     sektor:document.getElementById('fSektor').value,
-    nama:document.getElementById('fNama').value.trim(),
-    unit:document.getElementById('fUnit').value.trim(),
-    pegawai:document.getElementById('fPegawai').value.trim(),
+    nama:g('fNama'),
     mula:document.getElementById('fMula').value,
     tamat:document.getElementById('fTamat').value || document.getElementById('fMula').value,
-    tempat, vip
+    peringkat:g('fPeringkat'), kategori:g('fKategori'),
+    pegawaiMeja:g('fPegawaiMeja'), unit:g('fUnit'), subUnit:g('fSubUnit'),
+    vip, sasaran:g('fSasaran'), bilSasaran:g('fBilSasaran'),
+    peruntukan:g('fPeruntukan'), namaPegawai:g('fNamaPegawai'),
+    tempat,
+    utama: document.getElementById('fUtama').checked
   };
 }
 
@@ -714,19 +761,25 @@ async function doDelete(){
 
 /* =================== DETAIL =================== */
 function openDetail(p){
-  document.getElementById('dTitle').textContent=p.nama;
+  document.getElementById('dTitle').innerHTML =
+    (p.utama?'<span class="utama-badge">★ Program Utama JPN</span><br>':'') + esc(p.nama);
   const tempoh = p.mula===p.tamat ? fmtTarikh(p.mula) : fmtTarikh(p.mula)+' – '+fmtTarikh(p.tamat);
-  const rows=[
-    ['Sektor', `<span class="sektor-tag" style="background:${WARNA[p.sektor]||'#888'}">${esc(p.sektor)}</span>`],
-    ['Unit', esc(p.unit)||'—'],
-    ['Pegawai', esc(p.pegawai)||'—'],
-    ['Tarikh', tempoh],
-    ['Tempat', esc(p.tempat)||'—'],
-    ['VIP', (p.vip&&p.vip.length)?p.vip.map(esc).join(', '):'—'],
-    ['Kemaskini', p.kemaskini?`${fmtTarikh(p.kemaskini)} · ${esc(p.oleh||'')}`:'—']
-  ];
-  document.getElementById('detailBody').innerHTML=
-    rows.map(r=>`<div class="detail-row"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`).join('');
+  const baris=(k,v)=> v ? `<div class="detail-row"><span class="k">${k}</span><span class="v">${v}</span></div>` : '';
+  let html='';
+  html+=baris('Sektor', `<span class="sektor-tag" style="background:${WARNA[p.sektor]||'#888'}">${esc(p.sektor)}</span>`);
+  html+=baris('Tarikh', tempoh);
+  html+=baris('Peringkat', esc(p.peringkat));
+  html+=baris('Kategori', esc(p.kategori));
+  html+=baris('Unit', esc(p.unit));
+  html+=baris('Sub Unit', esc(p.subUnit));
+  html+=baris('Pegawai Meja', esc(p.pegawaiMeja));
+  html+=baris('Nama Pegawai', esc(p.namaPegawai));
+  html+=baris('Tetamu Utama', (p.vip&&p.vip.length)?p.vip.map(esc).join(', '):'');
+  html+=baris('Tempat', esc(p.tempat));
+  html+=baris('Sasaran', esc(p.sasaran) + (p.bilSasaran?` (${esc(p.bilSasaran)})`:''));
+  html+=baris('Peruntukan', esc(p.peruntukan));
+  html+=baris('Kemaskini', p.kemaskini?`${fmtTarikh(p.kemaskini)} · ${esc(p.oleh||'')}`:'');
+  document.getElementById('detailBody').innerHTML = html || '<p style="color:var(--muted)">Tiada butiran.</p>';
 
   // kebenaran edit
   const foot=document.getElementById('detailFoot');
@@ -890,8 +943,8 @@ async function generatePDF(){
       // jadual kronologi bulan ini
       const body=[], meta=[];
       progs.forEach((p,i)=>{
-        body.push([ i+1, tarikhRange(p), p.nama||'-', p.sektor.replace('Sektor ',''),
-                    p.unit||'-', p.pegawai||'-', p.tempat||'-', (p.vip&&p.vip.length)?p.vip.join(', '):'-' ]);
+        body.push([ i+1, tarikhRange(p), (p.utama?'★ ':'')+(p.nama||'-'), p.sektor.replace('Sektor ',''),
+                    p.unit||'-', p.namaPegawai||'-', p.tempat||'-', (p.vip&&p.vip.length)?p.vip.join(', '):'-' ]);
         meta.push(hexToRgb(WARNA[p.sektor]));
       });
       doc.autoTable({
