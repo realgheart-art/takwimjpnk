@@ -225,6 +225,12 @@ input,select{font-family:inherit;font-size:.92rem}
 .view-tabs{display:flex;gap:0;background:var(--paper-2);border:1.5px solid var(--line);border-radius:10px;padding:3px}
 .vt{font-size:.82rem;font-weight:600;color:var(--muted);padding:7px 14px;border-radius:8px;transition:.15s;white-space:nowrap}
 .vt.active{background:var(--navy);color:#fff}
+.btn-reset{background:#fff;color:var(--muted);font-weight:600;font-size:.82rem;padding:8px 14px;border-radius:10px;
+  border:1.5px solid var(--line);white-space:nowrap;transition:.15s}
+.btn-reset:hover{border-color:var(--brass);color:var(--navy)}
+.btn-arkib{background:#fff;color:var(--muted);font-weight:700;padding:10px 18px;border-radius:10px;font-size:.88rem;
+  border:1.5px solid var(--line);display:flex;align-items:center;gap:7px;transition:.15s}
+.btn-arkib:hover{border-color:var(--danger);color:var(--danger)}
 /* ---------- Kad statistik ---------- */
 .stat-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
 .stat-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
@@ -302,6 +308,7 @@ input,select{font-family:inherit;font-size:.92rem}
         </div>
         <div class="head-actions">
           <button class="btn-konflik" id="konflikBtn" onclick="openKonflik()" style="display:none">⚠ Konflik VIP</button>
+          <button class="btn-arkib" id="arkibBtn" onclick="doArkibReset()" style="display:none">🗄 Arkib &amp; Reset</button>
           <button class="btn-pdf" onclick="openExport()">⤓ Export PDF</button>
           <button class="btn-import" id="importBtn" onclick="openImport()" style="display:none">⤒ Import</button>
           <button class="btn-add" id="addBtn" onclick="openForm()" style="display:none">＋ Tambah Program</button>
@@ -317,6 +324,7 @@ input,select{font-family:inherit;font-size:.92rem}
           <button class="vt active" id="vtKalendar" onclick="setView('kalendar')">📅 Kalendar</button>
           <button class="vt" id="vtAnalitik" onclick="setView('analitik')">📊 Analitik</button>
         </div>
+        <button class="btn-reset" onclick="resetFilters()">↺ Set Semula</button>
       </div>
       <div id="calWrap">
         <div class="loading"><div class="spin"></div><br>Memuatkan takwim…</div>
@@ -327,6 +335,10 @@ input,select{font-family:inherit;font-size:.92rem}
         <div class="chart-grid">
           <div class="chart-card"><h3>Program Mengikut Bulan</h3><div id="chartBulan"></div></div>
           <div class="chart-card"><h3>Program Mengikut Kategori</h3><div id="chartKategori"></div></div>
+        </div>
+        <div class="chart-grid">
+          <div class="chart-card"><h3>Program Mengikut Teras Utama KPM</h3><div id="chartTeras"></div></div>
+          <div class="chart-card"><h3>Program Mengikut Peringkat</h3><div id="chartPeringkat"></div></div>
         </div>
       </div>
     </main>
@@ -527,10 +539,18 @@ input,select{font-family:inherit;font-size:.92rem}
         <div class="grp"><label>Hingga Tarikh</label><input type="date" id="exTamat"></div>
       </div>
       <div class="grp">
-        <label>Sektor Disertakan (ikut tapisan semasa)</label>
+        <label>Sektor</label>
+        <select id="exSektor" onchange="exUpdateNote()"></select>
+      </div>
+      <div class="grp">
+        <label>Skop semasa</label>
         <div id="exNote" style="font-size:.82rem;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;line-height:1.5"></div>
       </div>
-      <p style="font-size:.78rem;color:var(--muted);margin-top:4px">Disusun ikut bulan — grid ringkas berwarna + jadual kronologi penuh setiap bulan, lengkap dengan kepala surat dan nombor muka surat.</p>
+      <label class="utama-toggle" style="margin-bottom:4px">
+        <input type="checkbox" id="exStats" checked>
+        <span>📊 Sertakan <b>ringkasan statistik</b> untuk laporan pengurusan</span>
+      </label>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:8px">Disusun ikut bulan — grid ringkas berwarna + jadual kronologi penuh setiap bulan, lengkap dengan kepala surat dan nombor muka surat.</p>
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="closeExport()">Batal</button>
@@ -542,7 +562,7 @@ input,select{font-family:inherit;font-size:.92rem}
 <script>
 /* =================== KONFIGURASI =================== */
 // >>> GANTIKAN dengan URL Web App GAS anda (berakhir dengan /exec) <<<
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyf6jzdcKngy4oQSyCUNc4q9ufpsOPDSBnBW9DLUDToMOcvbJn2UeRt0Vu3Ywj_uZAi/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwT2AleHm6g_NRCvCKkXNq2w6YQgyrtl1uvTKqrkxD7ir7BZHjQCgS_jXEU-cRU2sN6/exec";
 
 /* =================== PWA =================== */
 let deferredPrompt = null;
@@ -667,6 +687,7 @@ function renderAuthUI(){
   document.getElementById('userState').style.display   = logged ? 'flex' : 'none';
   document.getElementById('addBtn').style.display       = logged ? 'flex' : 'none';
   document.getElementById('importBtn').style.display    = logged ? 'flex' : 'none';
+  document.getElementById('arkibBtn').style.display     = (logged && SESSION.peranan==='Admin') ? 'flex' : 'none';
   if(logged){
     document.getElementById('uName').textContent = SESSION.nama;
     document.getElementById('uRole').textContent = SESSION.peranan +
@@ -814,6 +835,15 @@ function clearSearch(){
   document.getElementById('searchX').style.display='none';
   applyFilters();
 }
+function resetFilters(){
+  utamaOnly=false; fltPeringkat=''; fltKategori=''; fltJenis=''; searchQuery='';
+  const el=id=>document.getElementById(id);
+  el('utamaFilter').checked=false;
+  el('fltPeringkat').value=''; el('fltKategori').value=''; el('fltJenis').value='';
+  el('searchBox').value=''; el('searchX').style.display='none';
+  setAllSektor(true); // hidupkan semua sektor + applyFilters
+  toast('Semua penapis di set semula');
+}
 function setView(v){
   currentView=v;
   const kal=v==='kalendar';
@@ -863,6 +893,18 @@ function buildAnalitik(){
   const katArr=Object.keys(byKat).map(k=>({label:k,val:byKat[k]}))
     .sort((a,b)=>b.val-a.val).slice(0,10);
   document.getElementById('chartKategori').innerHTML=hbars(katArr,'#1d4e89');
+
+  const byTeras={};
+  data.forEach(p=>{ const k=(p.terasKPM||'').trim()||'(Tiada)'; byTeras[k]=(byTeras[k]||0)+1; });
+  const terasArr=Object.keys(byTeras).map(k=>({label:k,val:byTeras[k]}))
+    .sort((a,b)=>b.val-a.val).slice(0,10);
+  document.getElementById('chartTeras').innerHTML=hbars(terasArr,'#588157');
+
+  const byPer={};
+  data.forEach(p=>{ const k=(p.peringkat||'').trim()||'(Tiada)'; byPer[k]=(byPer[k]||0)+1; });
+  const perArr=Object.keys(byPer).map(k=>({label:k,val:byPer[k]}))
+    .sort((a,b)=>b.val-a.val);
+  document.getElementById('chartPeringkat').innerHTML=hbars(perArr,'#bc6c25');
 }
 function kad(label,val){ return '<div class="stat-card"><div class="sc-val">'+val+'</div><div class="sc-lbl">'+esc(label)+'</div></div>'; }
 function hbars(arr, fixedColor){
@@ -1308,6 +1350,22 @@ async function reloadPrograms(){
   }catch(e){}
 }
 
+async function doArkibReset(){
+  if(!SESSION || SESSION.peranan!=='Admin'){ toast('Hanya Admin','err'); return; }
+  const total=PROGRAM.length;
+  if(!total){ toast('Tiada program untuk diarkib','err'); return; }
+  const label=prompt('Nama tab arkib:', 'Arkib '+new Date().getFullYear());
+  if(label===null) return;
+  if(!confirm('SAHKAN ARKIB & RESET\n\n• Salin '+total+' program ke tab "'+(label.trim()||'Arkib')+'"\n• KOSONGKAN takwim semasa\n\nData diarkib kekal selamat dalam tab baharu. Teruskan?')) return;
+  toast('Sedang arkib & reset…');
+  try{
+    const r=await api('archiveReset',{label:label.trim()});
+    if(!r.ok){ toast(r.error||'Gagal arkib','err'); return; }
+    await reloadPrograms();
+    toast('✓ '+r.rows+' program diarkib ke "'+r.arkib+'". Takwim dikosongkan.');
+  }catch(e){ toast('Ralat sambungan','err'); }
+}
+
 /* =================== EXPORT PDF =================== */
 const BULAN_PENUH=['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
 let LOGO_CACHE=null;
@@ -1316,12 +1374,20 @@ function openExport(){
   const yr=new Date().getFullYear();
   document.getElementById('exMula').value=yr+'-01-01';
   document.getElementById('exTamat').value=yr+'-12-31';
-  const aktif=SEKTOR.filter(s=>aktifSektor.has(s.nama));
-  document.getElementById('exNote').textContent =
-    (aktifSektor.size===SEKTOR.length)
-      ? 'Semua sektor ('+SEKTOR.length+')'
-      : (aktif.length ? aktif.map(s=>s.nama.replace('Sektor ','')).join(', ') : '⚠ Tiada sektor dipilih');
+  const sel=document.getElementById('exSektor');
+  sel.innerHTML='<option value="">Ikut tapisan semasa</option>'+
+    SEKTOR.map(s=>'<option value="'+esc(s.nama)+'">'+esc(s.nama)+'</option>').join('');
+  exUpdateNote();
   document.getElementById('exportOverlay').classList.add('show');
+}
+function exUpdateNote(){
+  const pilih=document.getElementById('exSektor').value;
+  const el=document.getElementById('exNote');
+  if(pilih){ el.textContent='Satu sektor: '+pilih; return; }
+  const aktif=SEKTOR.filter(s=>aktifSektor.has(s.nama));
+  el.textContent=(aktifSektor.size===SEKTOR.length)
+    ? 'Semua sektor ('+SEKTOR.length+')'
+    : (aktif.length ? aktif.map(s=>s.nama.replace('Sektor ','')).join(', ') : '⚠ Tiada sektor dipilih');
 }
 function closeExport(){ document.getElementById('exportOverlay').classList.remove('show'); }
 
@@ -1353,12 +1419,13 @@ function tarikhRange(p){ return (!p.tamat||p.tamat===p.mula) ? fmtShort(p.mula) 
 async function generatePDF(){
   const start=document.getElementById('exMula').value;
   const end=document.getElementById('exTamat').value;
+  const pilihSektor=document.getElementById('exSektor').value; // '' = ikut tapisan
+  const sertaStats=document.getElementById('exStats').checked;
   if(!start||!end){ toast('Sila isi julat tarikh','err'); return; }
   if(end<start){ toast('Tarikh akhir tak boleh sebelum tarikh mula','err'); return; }
-  if(aktifSektor.size===0){ toast('Sila pilih sekurang-kurangnya satu sektor','err'); return; }
+  if(!pilihSektor && aktifSektor.size===0){ toast('Sila pilih sekurang-kurangnya satu sektor','err'); return; }
 
   const btn=document.getElementById('exBtn'); btn.disabled=true; btn.textContent='Menyediakan…';
-  // muat pustaka PDF (fallback pelbagai-CDN)
   const okPdf = await ensureLib(hasJsPDF, JSPDF_CDNS) && await ensureLib(hasAutoTable, AUTOTABLE_CDNS);
   if(!okPdf){ toast('Pustaka PDF gagal dimuat. Semak talian & cuba lagi.','err'); btn.disabled=false; btn.textContent='Jana PDF'; return; }
   btn.textContent='Menjana…';
@@ -1370,9 +1437,10 @@ async function generatePDF(){
     const PW=210, PH=297, M=12, TOP=34, FOOT=14;
     const NAVY=[15,41,66], BRASS=[184,134,11];
 
-    // tapis & susun ikut bulan (ikut tarikh mula)
+    // tapis: ikut sektor terpilih ATAU tapisan semasa
+    const dalamSkop = p => pilihSektor ? (p.sektor===pilihSektor) : aktifSektor.has(p.sektor);
     const items=PROGRAM
-      .filter(p=>aktifSektor.has(p.sektor) && p.mula>=start && p.mula<=end)
+      .filter(p=>dalamSkop(p) && p.mula>=start && p.mula<=end)
       .sort((a,b)=>a.mula.localeCompare(b.mula));
     if(!items.length){ toast('Tiada program dalam julat/tapisan ini','err'); return; }
 
@@ -1383,7 +1451,8 @@ async function generatePDF(){
       .sort((a,b)=>SEKTOR.findIndex(s=>s.nama===a)-SEKTOR.findIndex(s=>s.nama===b));
 
     const tempoh=fmtTarikh(start)+' – '+fmtTarikh(end);
-    const sektorNote=(aktifSektor.size===SEKTOR.length)?'Semua sektor':(sektorPresent.length+' sektor');
+    const sektorNote = pilihSektor ? pilihSektor
+      : ((aktifSektor.size===SEKTOR.length)?'Semua sektor':(sektorPresent.length+' sektor'));
 
     let y=TOP;
     const newPage=()=>{ doc.addPage(); y=TOP; };
@@ -1401,6 +1470,47 @@ async function generatePDF(){
       doc.text(name, lx+4.6, y); lx+=w+2;
     });
     y+=9;
+
+    // --- Ringkasan statistik (pilihan) ---
+    if(sertaStats){
+      const total=items.length;
+      const utama=items.filter(p=>p.utama).length;
+      const bulanBil=new Array(12).fill(0);
+      items.forEach(p=>{ const mm=+p.mula.slice(5,7)-1; if(mm>=0&&mm<12) bulanBil[mm]++; });
+      const bulNama=['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'];
+
+      need(20);
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(...NAVY);
+      doc.text('RINGKASAN STATISTIK', M, y+4); y+=6;
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(50);
+      doc.text('Jumlah Program: '+total+'     Program Utama JPN: '+utama+'     Sektor Terlibat: '+sektorPresent.length, M, y+4);
+      y+=8;
+
+      // jadual ringkasan sektor
+      const sekBody=sektorPresent
+        .map(s=>[s.replace('Sektor ',''), items.filter(p=>p.sektor===s).length,
+                 Math.round(items.filter(p=>p.sektor===s).length/total*100)+'%'])
+        .sort((a,b)=>b[1]-a[1]);
+      sekBody.push(['JUMLAH', total, '100%']);
+      doc.autoTable({
+        head:[['Sektor','Bilangan','Peratus']],
+        body:sekBody, startY:y, margin:{top:TOP,bottom:FOOT,left:M,right:M}, theme:'grid',
+        styles:{fontSize:8,cellPadding:1.8}, headStyles:{fillColor:NAVY,textColor:[255,255,255],fontSize:8},
+        columnStyles:{0:{cellWidth:80},1:{cellWidth:28,halign:'center'},2:{cellWidth:28,halign:'center'}},
+        didParseCell:d=>{ if(d.row.index===sekBody.length-1){ d.cell.styles.fontStyle='bold'; d.cell.styles.fillColor=[241,236,224]; } }
+      });
+      y=doc.lastAutoTable.finalY+6;
+
+      // taburan bulan (satu baris teks ringkas)
+      need(10);
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...NAVY);
+      doc.text('Taburan Mengikut Bulan', M, y+3); y+=5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(60);
+      const barisBulan=bulNama.map((b,i)=>b+': '+bulanBil[i]).join('    ');
+      doc.text(barisBulan, M, y+3, {maxWidth:PW-2*M}); y+=12;
+
+      doc.setDrawColor(...BRASS); doc.setLineWidth(0.3); doc.line(M,y,PW-M,y); y+=8;
+    }
 
     // --- Setiap bulan ---
     const wd=['Isn','Sel','Rab','Kha','Jum','Sab','Ahd'];
@@ -1499,7 +1609,10 @@ async function generatePDF(){
       doc.text('Muka surat '+i+' / '+total, PW-M, PH-6, {align:'right'});
     }
 
-    doc.save('Takwim-JPN-Kedah_'+start+'_hingga_'+end+'.pdf');
+    const namaFail = pilihSektor
+      ? 'Takwim_'+pilihSektor.replace('Sektor ','').replace(/[^\w]/g,'-')+'_'+start+'_'+end+'.pdf'
+      : 'Takwim-JPN-Kedah_'+start+'_hingga_'+end+'.pdf';
+    doc.save(namaFail);
     closeExport();
     toast('PDF berjaya dijana ✓');
   }catch(e){
