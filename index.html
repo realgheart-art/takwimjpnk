@@ -88,6 +88,9 @@ input,select{font-family:inherit;font-size:.92rem}
 .btn-pdf{background:#fff;color:var(--navy);font-weight:700;padding:10px 18px;border-radius:10px;font-size:.88rem;
   border:1.5px solid var(--navy);display:flex;align-items:center;gap:7px;transition:.15s}
 .btn-pdf:hover{background:var(--navy);color:#fff}
+.btn-import{background:#fff;color:var(--navy);font-weight:700;padding:10px 18px;border-radius:10px;font-size:.88rem;
+  border:1.5px solid var(--brass);display:flex;align-items:center;gap:7px;transition:.15s}
+.btn-import:hover{background:#fff8e6}
 .btn-add{background:var(--brass);color:var(--navy);font-weight:700;padding:10px 18px;border-radius:10px;font-size:.88rem;display:flex;align-items:center;gap:7px;transition:.15s;box-shadow:0 4px 12px rgba(184,134,11,.25)}
 .btn-add:hover{background:var(--brass-soft);transform:translateY(-1px)}
 
@@ -162,6 +165,19 @@ input,select{font-family:inherit;font-size:.92rem}
 .kf-meta{color:var(--muted);font-size:.74rem}
 .kf-kosong{text-align:center;padding:36px 12px;color:var(--ok);font-weight:600;font-size:1rem}
 .kf-kosong span{color:var(--muted);font-weight:400;font-size:.84rem}
+.imp-sum{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.imp-sum span{font-size:.82rem;font-weight:700;padding:6px 12px;border-radius:8px}
+.imp-ok{background:#e8f3ec;color:var(--ok)}
+.imp-err{background:#fdeceb;color:var(--danger)}
+.imp-warn{background:#fff8e6;color:var(--brass)}
+.imp-note{font-size:.76rem;color:var(--muted);margin-bottom:10px}
+.imp-table-wrap{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:9px}
+.imp-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.imp-table th{position:sticky;top:0;background:var(--navy);color:#fff;padding:7px 9px;text-align:left;font-weight:600;font-size:.74rem}
+.imp-table td{padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+.imp-table tr.row-err{background:#fdf2f1}
+.imp-table .c-err{color:var(--danger)}
+.imp-table .c-warn{color:var(--brass)}
 
 /* clash warning */
 .clash-banner{background:#fff8e6;border:1.5px solid var(--brass-pale);border-radius:10px;padding:12px 14px;margin-bottom:14px}
@@ -242,6 +258,7 @@ input,select{font-family:inherit;font-size:.92rem}
         <div class="head-actions">
           <button class="btn-konflik" id="konflikBtn" onclick="openKonflik()" style="display:none">⚠ Konflik VIP</button>
           <button class="btn-pdf" onclick="openExport()">⤓ Export PDF</button>
+          <button class="btn-import" id="importBtn" onclick="openImport()" style="display:none">⤒ Import</button>
           <button class="btn-add" id="addBtn" onclick="openForm()" style="display:none">＋ Tambah Program</button>
         </div>
       </div>
@@ -283,6 +300,10 @@ input,select{font-family:inherit;font-size:.92rem}
       <div class="row2">
         <div class="grp"><label>Peringkat</label><input type="text" id="fPeringkat" placeholder="cth: Negeri"></div>
         <div class="grp"><label>Kategori</label><input type="text" id="fKategori" placeholder="cth: Pemantauan"></div>
+      </div>
+      <div class="row2">
+        <div class="grp"><label>Jenis Program</label><input type="text" id="fJenis" placeholder="cth: Kokurikulum"></div>
+        <div class="grp"><label>Teras Utama KPM</label><input type="text" id="fTeras" placeholder="cth: Teras 2"></div>
       </div>
 
       <div class="form-sec">Tarikh</div>
@@ -359,6 +380,40 @@ input,select{font-family:inherit;font-size:.92rem}
   </div>
 </div>
 
+<!-- ============ MODAL: IMPORT ============ -->
+<div class="overlay" id="importOverlay">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">Kemasukan Pukal</div>
+        <h3>Import dari Tempelan Excel</h3>
+      </div>
+      <button class="x-btn" onclick="closeImport()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="importStep1">
+        <p style="font-size:.84rem;color:var(--muted);margin-bottom:10px;line-height:1.5">
+          Di Excel, pilih data <b>termasuk baris tajuk (header)</b> → salin (Ctrl+C) → tampal (Ctrl+V) dalam kotak di bawah.
+          App akan padan lajur ikut nama tajuk, jadi susunan lajur tak penting.
+          Tarikh guna format <b>HH/BB/TTTT</b> (cth 05/01/2026).
+        </p>
+        <textarea id="importText" placeholder="Tampal data Excel di sini (termasuk baris tajuk)…"
+          style="width:100%;height:150px;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;font-family:monospace;font-size:.8rem;resize:vertical"></textarea>
+      </div>
+      <div id="importStep2" style="display:none">
+        <div id="importSummary"></div>
+        <div id="importPreview"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeImport()">Batal</button>
+      <button class="btn-cancel" id="importBackBtn" onclick="importReset()" style="display:none">‹ Tampal Semula</button>
+      <button class="btn-save" id="importSemakBtn" onclick="semakImport()">Semak Data</button>
+      <button class="btn-save" id="importGoBtn" onclick="doImport()" style="display:none">Sahkan Import</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL: LOG MASUK ============ -->
 <div class="overlay" id="loginOverlay">
   <div class="modal" style="max-width:400px">
@@ -418,7 +473,7 @@ input,select{font-family:inherit;font-size:.92rem}
 <script>
 /* =================== KONFIGURASI =================== */
 // >>> GANTIKAN dengan URL Web App GAS anda (berakhir dengan /exec) <<<
-const GAS_URL = "https://script.google.com/macros/s/AKfycbw90JtADtYF1TITvF4nz6ZNy2pk0xddah3WLDUz5qHPEn94Q__Y3nMBGVoeCB-BaQtI/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzAz04o3cQ0M1QsdQKKkxQrwI18UO3KuSFSOXeZH3XMDczX8XlQatO56qlMMJKMlDhn/exec";
 
 /* =================== PWA =================== */
 let deferredPrompt = null;
@@ -540,6 +595,7 @@ function renderAuthUI(){
   document.getElementById('topLoginBtn').style.display = logged ? 'none' : 'inline-block';
   document.getElementById('userState').style.display   = logged ? 'flex' : 'none';
   document.getElementById('addBtn').style.display       = logged ? 'flex' : 'none';
+  document.getElementById('importBtn').style.display    = logged ? 'flex' : 'none';
   if(logged){
     document.getElementById('uName').textContent = SESSION.nama;
     document.getElementById('uRole').textContent = SESSION.peranan +
@@ -707,7 +763,8 @@ function openForm(prog){
     document.getElementById('formEyebrow').textContent='Kemaskini Entri';
     document.getElementById('formTitle').textContent='Edit Program';
     set('fId',prog.id); set('fNama',prog.nama); set('fPeringkat',prog.peringkat);
-    set('fKategori',prog.kategori); set('fMula',prog.mula); set('fTamat',prog.tamat);
+    set('fKategori',prog.kategori); set('fJenis',prog.jenisProgram); set('fTeras',prog.terasKPM);
+    set('fMula',prog.mula); set('fTamat',prog.tamat);
     set('fUnit',prog.unit); set('fSubUnit',prog.subUnit); set('fPegawaiMeja',prog.pegawaiMeja);
     set('fNamaPegawai',prog.namaPegawai); set('fSasaran',prog.sasaran);
     set('fBilSasaran',prog.bilSasaran); set('fPeruntukan',prog.peruntukan);
@@ -719,7 +776,7 @@ function openForm(prog){
   }else{ // baharu
     document.getElementById('formEyebrow').textContent='Entri Baharu';
     document.getElementById('formTitle').textContent='Tambah Program';
-    ['fId','fNama','fPeringkat','fKategori','fMula','fTamat','fUnit','fSubUnit',
+    ['fId','fNama','fPeringkat','fKategori','fJenis','fTeras','fMula','fTamat','fUnit','fSubUnit',
      'fPegawaiMeja','fNamaPegawai','fSasaran','fBilSasaran','fPeruntukan'].forEach(id=>set(id,''));
     document.getElementById('fUtama').checked=false;
     if(SESSION && SESSION.peranan==='Pengguna Sektor') document.getElementById('fSektor').value=SESSION.sektor;
@@ -744,6 +801,7 @@ function bacaBorang(){
     mula:document.getElementById('fMula').value,
     tamat:document.getElementById('fTamat').value || document.getElementById('fMula').value,
     peringkat:g('fPeringkat'), kategori:g('fKategori'),
+    jenisProgram:g('fJenis'), terasKPM:g('fTeras'),
     pegawaiMeja:g('fPegawaiMeja'), unit:g('fUnit'), subUnit:g('fSubUnit'),
     vip, sasaran:g('fSasaran'), bilSasaran:g('fBilSasaran'),
     peruntukan:g('fPeruntukan'), namaPegawai:g('fNamaPegawai'),
@@ -809,6 +867,8 @@ function openDetail(p){
   html+=baris('Tarikh', tempoh);
   html+=baris('Peringkat', esc(p.peringkat));
   html+=baris('Kategori', esc(p.kategori));
+  html+=baris('Jenis Program', esc(p.jenisProgram));
+  html+=baris('Teras Utama KPM', esc(p.terasKPM));
   html+=baris('Unit', esc(p.unit));
   html+=baris('Sub Unit', esc(p.subUnit));
   html+=baris('Pegawai Meja', esc(p.pegawaiMeja));
@@ -901,6 +961,159 @@ function openKonflik(){
 }
 function closeKonflik(){ document.getElementById('konflikOverlay').classList.remove('show'); }
 function openProgById(id){ const p=getProg(id); if(p){ closeKonflik(); openDetail(p); } }
+
+/* =================== IMPORT PUKAL =================== */
+const HEADER_MAP={
+  'BIL':null, 'NO':null, 'BILANGAN':null,
+  'SEKTOR':'sektor',
+  'NAMA AKTIVITI/PROGRAM':'nama','NAMA PROGRAM':'nama','NAMA AKTIVITI':'nama','PROGRAM':'nama','NAMA':'nama','AKTIVITI':'nama',
+  'TARIKH MULA':'mula','MULA':'mula',
+  'TARIKH AKHIR':'tamat','TARIKH TAMAT':'tamat','AKHIR':'tamat','TAMAT':'tamat',
+  'PERINGKAT':'peringkat',
+  'KATEGORI':'kategori',
+  'JENIS PROGRAM':'jenisProgram','JENIS':'jenisProgram',
+  'TERAS UTAMA KPM':'terasKPM','TERAS KPM':'terasKPM','TERAS UTAMA':'terasKPM','TERAS':'terasKPM',
+  'PEGAWAI MEJA':'pegawaiMeja',
+  'UNIT':'unit',
+  'SUB UNIT':'subUnit','SUBUNIT':'subUnit',
+  'TETAMU UTAMA':'vip','VIP':'vip','TETAMU':'vip',
+  'SASARAN':'sasaran',
+  'BIL SASARAN':'bilSasaran','BILANGAN SASARAN':'bilSasaran',
+  'PERUNTUKAN':'peruntukan',
+  'NAMA PEGAWAI':'namaPegawai','PEGAWAI':'namaPegawai','PEGAWAI BERTANGGUNGJAWAB':'namaPegawai',
+  'TEMPAT':'tempat','LOKASI':'tempat'
+};
+function normHeader(h){
+  return String(h||'').toUpperCase().replace(/\s*\/\s*/g,'/').replace(/[.]/g,'').replace(/\s+/g,' ').trim();
+}
+function parseDMY(s){
+  s=String(s||'').trim(); if(!s) return null;
+  let m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if(m){ let d=+m[1],mo=+m[2],y=+m[3]; if(y<100) y+=2000;
+    if(mo>=1&&mo<=12&&d>=1&&d<=31) return y+'-'+pad(mo)+'-'+pad(d); }
+  m=s.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+  if(m) return m[1]+'-'+pad(+m[2])+'-'+pad(+m[3]);
+  return null;
+}
+let importRows=[];
+
+function openImport(){
+  document.getElementById('importText').value='';
+  importReset();
+  document.getElementById('importOverlay').classList.add('show');
+}
+function closeImport(){ document.getElementById('importOverlay').classList.remove('show'); }
+function importReset(){
+  document.getElementById('importStep1').style.display='block';
+  document.getElementById('importStep2').style.display='none';
+  document.getElementById('importSemakBtn').style.display='inline-block';
+  document.getElementById('importGoBtn').style.display='none';
+  document.getElementById('importBackBtn').style.display='none';
+  importRows=[];
+}
+
+function semakImport(){
+  const raw=document.getElementById('importText').value.trim();
+  if(!raw){ toast('Tampal data dahulu','err'); return; }
+  const lines=raw.split(/\r?\n/).filter(l=>l.trim()!=='');
+  if(lines.length<2){ toast('Perlu baris tajuk + sekurang-kurangnya satu baris data','err'); return; }
+
+  const rawHeaders=lines[0].split('\t');
+  const fields=rawHeaders.map(h=>{ const n=normHeader(h); return (n in HEADER_MAP) ? HEADER_MAP[n] : undefined; });
+  const diabai=rawHeaders.filter((h,i)=>fields[i]===undefined && normHeader(h));
+
+  if(!fields.includes('nama') || !fields.includes('mula')){
+    toast('Baris tajuk mesti ada lajur Nama Program dan Tarikh Mula','err'); return;
+  }
+
+  const isPS = SESSION && SESSION.peranan==='Pengguna Sektor';
+  const sektorSet={}; SEKTOR.forEach(s=>sektorSet[s.nama.toUpperCase()]=s.nama);
+  const vipSet={}; VIP.forEach(v=>vipSet[v.toUpperCase()]=true);
+
+  const parsed=[];
+  for(let i=1;i<lines.length;i++){
+    const cells=lines[i].split('\t');
+    const o={_errs:[],_warns:[]};
+    fields.forEach((f,ci)=>{ if(f) o[f]=(cells[ci]||'').trim(); });
+
+    if(isPS){ o.sektor=SESSION.sektor; }
+    else {
+      const rw=(o.sektor||'').trim();
+      if(!rw) o._errs.push('Sektor kosong');
+      else { const match=sektorSet[rw.toUpperCase()]; if(match) o.sektor=match; else o._errs.push('Sektor tak dikenali: '+rw); }
+    }
+    if(!o.nama) o._errs.push('Nama kosong');
+    const m=parseDMY(o.mula);
+    if(!m) o._errs.push('Tarikh Mula tak sah: '+(o.mula||'(kosong)')); else o.mula=m;
+    if(o.tamat){ const t=parseDMY(o.tamat);
+      if(!t) o._errs.push('Tarikh Akhir tak sah: '+o.tamat);
+      else { o.tamat=t; if(m && t<m) o._errs.push('Tarikh Akhir sebelum Mula'); }
+    } else o.tamat=m||'';
+    if(o.vip){ o.vip=String(o.vip).split(/[|,;]/).map(s=>s.trim()).filter(Boolean);
+      const luar=o.vip.filter(v=>!vipSet[v.toUpperCase()]);
+      if(luar.length) o._warns.push('VIP luar senarai: '+luar.join(', '));
+    } else o.vip=[];
+
+    parsed.push(o);
+  }
+
+  const sah=parsed.filter(o=>o._errs.length===0);
+  const ralat=parsed.filter(o=>o._errs.length>0);
+  const amaran=sah.filter(o=>o._warns.length>0);
+  importRows=sah.map(o=>({sektor:o.sektor,nama:o.nama,mula:o.mula,tamat:o.tamat,
+    peringkat:o.peringkat||'',kategori:o.kategori||'',jenisProgram:o.jenisProgram||'',terasKPM:o.terasKPM||'',
+    pegawaiMeja:o.pegawaiMeja||'',unit:o.unit||'',subUnit:o.subUnit||'',vip:o.vip||[],
+    sasaran:o.sasaran||'',bilSasaran:o.bilSasaran||'',peruntukan:o.peruntukan||'',
+    namaPegawai:o.namaPegawai||'',tempat:o.tempat||''}));
+
+  let sum='<div class="imp-sum">';
+  sum+='<span class="imp-ok">✓ '+sah.length+' sedia diimport</span>';
+  if(ralat.length) sum+='<span class="imp-err">✕ '+ralat.length+' ada ralat (dilangkau)</span>';
+  if(amaran.length) sum+='<span class="imp-warn">⚠ '+amaran.length+' amaran VIP</span>';
+  sum+='</div>';
+  if(diabai.length) sum+='<p class="imp-note">Lajur diabaikan: '+diabai.map(esc).join(', ')+'</p>';
+
+  let tbl='<div class="imp-table-wrap"><table class="imp-table"><thead><tr><th>#</th><th></th><th>Nama</th><th>Sektor</th><th>Tarikh</th><th>Catatan</th></tr></thead><tbody>';
+  parsed.forEach((o,idx)=>{
+    const ok=o._errs.length===0;
+    const cat=[...o._errs.map(e=>'<span class="c-err">'+esc(e)+'</span>'),
+               ...o._warns.map(w=>'<span class="c-warn">'+esc(w)+'</span>')].join('<br>');
+    const tarikh=o.mula?(o.tamat&&o.tamat!==o.mula?fmtTarikh(o.mula)+'–'+fmtTarikh(o.tamat):fmtTarikh(o.mula)):'—';
+    tbl+='<tr class="'+(ok?'':'row-err')+'"><td>'+(idx+1)+'</td><td>'+(ok?'✓':'✕')+'</td><td>'+
+      esc(o.nama||'—')+'</td><td>'+esc((o.sektor||'—').replace('Sektor ',''))+'</td><td>'+tarikh+'</td><td>'+(cat||'—')+'</td></tr>';
+  });
+  tbl+='</tbody></table></div>';
+
+  document.getElementById('importSummary').innerHTML=sum;
+  document.getElementById('importPreview').innerHTML=tbl;
+  document.getElementById('importStep1').style.display='none';
+  document.getElementById('importStep2').style.display='block';
+  document.getElementById('importSemakBtn').style.display='none';
+  document.getElementById('importBackBtn').style.display='inline-block';
+  document.getElementById('importGoBtn').style.display = sah.length ? 'inline-block' : 'none';
+  document.getElementById('importGoBtn').textContent = 'Sahkan Import ('+sah.length+')';
+}
+
+async function doImport(){
+  if(!importRows.length){ toast('Tiada baris sah untuk import','err'); return; }
+  const btn=document.getElementById('importGoBtn'); btn.disabled=true; btn.textContent='Mengimport…';
+  try{
+    const r=await api('importPrograms',{rows:importRows});
+    if(!r.ok){ toast(r.error||'Import gagal','err'); return; }
+    await reloadPrograms();
+    closeImport();
+    let msg='Berjaya import '+r.imported+' program ✓';
+    if(r.clashRows) msg+=' · '+r.clashRows+' ada pertindihan';
+    toast(msg);
+  }catch(e){ toast('Ralat sambungan semasa import','err'); }
+  finally{ btn.disabled=false; btn.textContent='Sahkan Import'; }
+}
+
+async function reloadPrograms(){
+  try{ const r=await api('bootstrap',{});
+    if(r&&r.ok){ PROGRAM=r.program||[]; refreshEvents(); updateKonflikCount(); }
+  }catch(e){}
+}
 
 /* =================== EXPORT PDF =================== */
 const BULAN_PENUH=['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
@@ -1116,7 +1329,7 @@ function toast(msg,type){
   clearTimeout(toastT); toastT=setTimeout(()=>el.className='toast',3200);
 }
 // tutup overlay bila klik latar
-['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay'].forEach(id=>{
+['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay','importOverlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) e.target.classList.remove('show'); });
 });
 
