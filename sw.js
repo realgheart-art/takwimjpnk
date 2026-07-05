@@ -1,7 +1,7 @@
 /* Takwim JPN — Service Worker
    Naikkan nombor versi (v1 -> v2) setiap kali index.html dikemas kini,
    supaya pengguna dapat versi terbaharu. */
-const CACHE = 'takwim-jpn-v9';
+const CACHE = 'takwim-jpn-v10';
 const SHELL = [
   './',
   'index.html',
