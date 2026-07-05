@@ -397,6 +397,11 @@ input,select{font-family:inherit;font-size:.92rem}
           App akan padan lajur ikut nama tajuk, jadi susunan lajur tak penting.
           Tarikh guna format <b>HH/BB/TTTT</b> (cth 05/01/2026).
         </p>
+        <div class="grp" id="importSektorWrap" style="margin-bottom:12px">
+          <label>Sektor untuk data ini</label>
+          <select id="importSektor"></select>
+          <div id="importSektorNote" style="font-size:.76rem;color:var(--muted);margin-top:5px"></div>
+        </div>
         <textarea id="importText" placeholder="Tampal data Excel di sini (termasuk baris tajuk)…"
           style="width:100%;height:150px;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;font-family:monospace;font-size:.8rem;resize:vertical"></textarea>
       </div>
@@ -999,6 +1004,18 @@ let importRows=[];
 
 function openImport(){
   document.getElementById('importText').value='';
+  const isPS = SESSION && SESSION.peranan==='Pengguna Sektor';
+  const sel=document.getElementById('importSektor');
+  const note=document.getElementById('importSektorNote');
+  if(isPS){
+    sel.style.display='none';
+    note.textContent='Semua baris akan dimasukkan ke sektor anda: '+SESSION.sektor;
+  }else{
+    sel.style.display='block';
+    sel.innerHTML='<option value="">— Guna lajur SEKTOR dalam data —</option>'+
+      SEKTOR.map(s=>'<option value="'+esc(s.nama)+'">'+esc(s.nama)+'</option>').join('');
+    note.textContent='Fail khusus satu sektor (tiada lajur SEKTOR)? Pilih sektornya di sini.';
+  }
   importReset();
   document.getElementById('importOverlay').classList.add('show');
 }
@@ -1027,6 +1044,14 @@ function semakImport(){
   }
 
   const isPS = SESSION && SESSION.peranan==='Pengguna Sektor';
+  let forced = null;
+  if(isPS) forced = SESSION.sektor;
+  else { const v=document.getElementById('importSektor').value; if(v) forced=v; }
+
+  if(!forced && !fields.includes('sektor')){
+    toast('Data tiada lajur SEKTOR — sila pilih Sektor di atas.','err'); return;
+  }
+
   const sektorSet={}; SEKTOR.forEach(s=>sektorSet[s.nama.toUpperCase()]=s.nama);
   const vipSet={}; VIP.forEach(v=>vipSet[v.toUpperCase()]=true);
 
@@ -1036,7 +1061,7 @@ function semakImport(){
     const o={_errs:[],_warns:[]};
     fields.forEach((f,ci)=>{ if(f) o[f]=(cells[ci]||'').trim(); });
 
-    if(isPS){ o.sektor=SESSION.sektor; }
+    if(forced){ o.sektor=forced; }
     else {
       const rw=(o.sektor||'').trim();
       if(!rw) o._errs.push('Sektor kosong');
