@@ -207,7 +207,46 @@ input,select{font-family:inherit;font-size:.92rem}
   .sidebar{width:100%;border-right:none;border-bottom:1px solid var(--line);max-height:none}
   .row2{grid-template-columns:1fr}
   .brand h1{font-size:.92rem}
+  .chart-grid{grid-template-columns:1fr!important}
+  .toolbar{flex-direction:column;align-items:stretch}
 }
+/* ---------- Penapis lanjutan ---------- */
+.side-filters{margin-bottom:16px}
+.side-filters select{width:100%;padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;background:#fff;
+  font-size:.8rem;margin-bottom:8px;color:var(--ink)}
+.side-filters select:focus{outline:none;border-color:var(--brass)}
+/* ---------- Toolbar (carian + tab) ---------- */
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:200px;display:flex;align-items:center}
+.search-ic{position:absolute;left:12px;font-size:.85rem;opacity:.5;pointer-events:none}
+.search-wrap input{width:100%;padding:10px 34px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-size:.88rem}
+.search-wrap input:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(184,134,11,.12)}
+.search-x{position:absolute;right:8px;font-size:1.3rem;color:var(--muted);line-height:1;padding:0 6px}
+.view-tabs{display:flex;gap:0;background:var(--paper-2);border:1.5px solid var(--line);border-radius:10px;padding:3px}
+.vt{font-size:.82rem;font-weight:600;color:var(--muted);padding:7px 14px;border-radius:8px;transition:.15s;white-space:nowrap}
+.vt.active{background:var(--navy);color:#fff}
+/* ---------- Kad statistik ---------- */
+.stat-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.stat-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
+.stat-card .sc-val{font-family:'Fraunces',serif;font-size:2rem;font-weight:600;color:var(--navy);line-height:1}
+.stat-card .sc-lbl{font-size:.78rem;color:var(--muted);margin-top:6px;font-weight:600}
+/* ---------- Carta ---------- */
+.chart-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:16px}
+.chart-card h3{font-size:1.05rem;color:var(--navy);margin-bottom:14px}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart-empty{color:var(--muted);font-size:.85rem;padding:10px 0}
+.hbars{display:flex;flex-direction:column;gap:8px}
+.hbar-row{display:grid;grid-template-columns:130px 1fr 34px;align-items:center;gap:10px;font-size:.8rem}
+.hbar-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.hbar-track{background:var(--paper-2);border-radius:6px;height:16px;overflow:hidden}
+.hbar-fill{display:block;height:100%;border-radius:6px;min-width:2px;transition:width .4s ease}
+.hbar-val{text-align:right;font-weight:700;color:var(--navy)}
+.vbars{display:flex;align-items:flex-end;gap:4px;height:170px;padding-top:16px}
+.vbar-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;gap:4px}
+.vbar-val{font-size:.66rem;font-weight:700;color:var(--navy);height:12px}
+.vbar-track{width:100%;flex:1;display:flex;align-items:flex-end}
+.vbar-fill{width:100%;background:linear-gradient(180deg,var(--brass-soft),var(--brass));border-radius:4px 4px 0 0;min-height:2px;transition:height .4s ease}
+.vbar-lbl{font-size:.62rem;color:var(--muted);font-weight:600}
 </style>
 </head>
 <body>
@@ -241,6 +280,12 @@ input,select{font-family:inherit;font-size:.92rem}
         <input type="checkbox" id="utamaFilter" onchange="toggleUtamaOnly(this)">
         <span>★ Program Utama JPN sahaja</span>
       </label>
+      <div class="side-filters">
+        <h2>Penapis Lanjutan</h2>
+        <select id="fltPeringkat" onchange="setFilter('peringkat',this.value)"></select>
+        <select id="fltKategori" onchange="setFilter('kategori',this.value)"></select>
+        <select id="fltJenis" onchange="setFilter('jenis',this.value)"></select>
+      </div>
       <h2>Tapis Mengikut Sektor</h2>
       <div class="filter-actions">
         <button onclick="setAllSektor(true)">Pilih semua</button>
@@ -262,8 +307,27 @@ input,select{font-family:inherit;font-size:.92rem}
           <button class="btn-add" id="addBtn" onclick="openForm()" style="display:none">＋ Tambah Program</button>
         </div>
       </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-ic">🔍</span>
+          <input type="text" id="searchBox" placeholder="Cari program, pegawai, tempat, VIP…" oninput="onSearch(this.value)">
+          <button class="search-x" id="searchX" onclick="clearSearch()" style="display:none">×</button>
+        </div>
+        <div class="view-tabs">
+          <button class="vt active" id="vtKalendar" onclick="setView('kalendar')">📅 Kalendar</button>
+          <button class="vt" id="vtAnalitik" onclick="setView('analitik')">📊 Analitik</button>
+        </div>
+      </div>
       <div id="calWrap">
         <div class="loading"><div class="spin"></div><br>Memuatkan takwim…</div>
+      </div>
+      <div id="analitikWrap" style="display:none">
+        <div class="stat-cards" id="statCards"></div>
+        <div class="chart-card"><h3>Program Mengikut Sektor</h3><div id="chartSektor"></div></div>
+        <div class="chart-grid">
+          <div class="chart-card"><h3>Program Mengikut Bulan</h3><div id="chartBulan"></div></div>
+          <div class="chart-card"><h3>Program Mengikut Kategori</h3><div id="chartKategori"></div></div>
+        </div>
       </div>
     </main>
   </div>
@@ -544,6 +608,8 @@ let PROGRAM = [];            // [{...}]
 let WARNA = {};              // {namaSektor: hex}
 let aktifSektor = new Set(); // sektor yang ditapis (papar)
 let utamaOnly = false;       // penapis Program Utama sahaja
+let fltPeringkat='', fltKategori='', fltJenis='', searchQuery='';
+let currentView='kalendar';
 let calendar = null;
 
 /* =================== API HELPER =================== */
@@ -640,6 +706,7 @@ async function initApp(){
   WARNA={}; aktifSektor.clear();
   SEKTOR.forEach(s=>{ WARNA[s.nama]=s.warna; aktifSektor.add(s.nama); });
   buildSektorFilter();
+  buildFilterDropdowns();
 
   const okFC = await ensureLib(hasFC, FC_CDNS);
   if(!okFC){
@@ -677,14 +744,14 @@ function buildSektorFilter(){
 function toggleSektor(cb){
   const n=cb.getAttribute('data-s');
   cb.checked ? aktifSektor.add(n) : aktifSektor.delete(n);
-  refreshEvents();
+  applyFilters();
 }
-function toggleUtamaOnly(cb){ utamaOnly=cb.checked; refreshEvents(); }
+function toggleUtamaOnly(cb){ utamaOnly=cb.checked; applyFilters(); }
 function setAllSektor(on){
   document.querySelectorAll('#sektorFilter input').forEach(cb=>{ cb.checked=on; });
   aktifSektor.clear();
   if(on) SEKTOR.forEach(s=>aktifSektor.add(s.nama));
-  refreshEvents();
+  applyFilters();
 }
 
 /* =================== KALENDAR =================== */
@@ -700,21 +767,122 @@ function buildCalendar(){
   });
   calendar.render();
 }
+function filteredPrograms(){
+  const q=searchQuery.trim().toLowerCase();
+  return PROGRAM.filter(p=>
+    aktifSektor.has(p.sektor) &&
+    (!utamaOnly || p.utama) &&
+    (!fltPeringkat || (p.peringkat||'')===fltPeringkat) &&
+    (!fltKategori || (p.kategori||'')===fltKategori) &&
+    (!fltJenis || (p.jenisProgram||'')===fltJenis) &&
+    (!q || [p.nama,p.namaPegawai,p.pegawaiMeja,p.tempat,p.unit,p.subUnit,p.peringkat,
+            p.kategori,p.jenisProgram,p.terasKPM,p.sasaran,(p.vip||[]).join(' ')]
+            .join(' ').toLowerCase().includes(q))
+  );
+}
 function buildEvents(){
-  return PROGRAM
-    .filter(p=>aktifSektor.has(p.sektor) && (!utamaOnly || p.utama))
-    .map(p=>({
-      title:(p.utama?'★ ':'')+p.nama, start:p.mula, end:plusOneDay(p.tamat||p.mula), allDay:true,
-      backgroundColor:WARNA[p.sektor]||'#888',
-      borderColor: p.utama ? '#b8860b' : (WARNA[p.sektor]||'#888'),
-      classNames: p.utama ? ['ev-utama'] : [],
-      extendedProps:{raw:p}
-    }));
+  return filteredPrograms().map(p=>({
+    title:(p.utama?'★ ':'')+p.nama, start:p.mula, end:plusOneDay(p.tamat||p.mula), allDay:true,
+    backgroundColor:WARNA[p.sektor]||'#888',
+    borderColor: p.utama ? '#b8860b' : (WARNA[p.sektor]||'#888'),
+    classNames: p.utama ? ['ev-utama'] : [],
+    extendedProps:{raw:p}
+  }));
 }
 function refreshEvents(){
   if(!calendar) return;
   calendar.removeAllEvents();
   calendar.addEventSource(buildEvents());
+}
+function applyFilters(){
+  refreshEvents();
+  if(currentView==='analitik') buildAnalitik();
+}
+function setFilter(type,val){
+  if(type==='peringkat') fltPeringkat=val;
+  else if(type==='kategori') fltKategori=val;
+  else if(type==='jenis') fltJenis=val;
+  applyFilters();
+}
+function onSearch(v){
+  searchQuery=v;
+  document.getElementById('searchX').style.display = v ? 'block' : 'none';
+  applyFilters();
+}
+function clearSearch(){
+  searchQuery=''; document.getElementById('searchBox').value='';
+  document.getElementById('searchX').style.display='none';
+  applyFilters();
+}
+function setView(v){
+  currentView=v;
+  const kal=v==='kalendar';
+  document.getElementById('calWrap').style.display = kal ? 'block' : 'none';
+  document.getElementById('analitikWrap').style.display = kal ? 'none' : 'block';
+  document.getElementById('vtKalendar').classList.toggle('active', kal);
+  document.getElementById('vtAnalitik').classList.toggle('active', !kal);
+  if(kal){ if(calendar) calendar.updateSize(); } else buildAnalitik();
+}
+function buildFilterDropdowns(){
+  fillSel('fltPeringkat','Semua Peringkat','peringkat');
+  fillSel('fltKategori','Semua Kategori','kategori');
+  fillSel('fltJenis','Semua Jenis Program','jenisProgram');
+}
+function fillSel(id,allLabel,field){
+  const vals=[...new Set(PROGRAM.map(p=>(p[field]||'').trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b));
+  const sel=document.getElementById(id); const semasa=sel.value;
+  sel.innerHTML='<option value="">'+allLabel+'</option>'+
+    vals.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  if(semasa && vals.indexOf(semasa)>-1) sel.value=semasa;
+}
+
+/* =================== ANALITIK =================== */
+function buildAnalitik(){
+  const data=filteredPrograms();
+  const total=data.length;
+  const utama=data.filter(p=>p.utama).length;
+  const sektorAktif=new Set(data.map(p=>p.sektor)).size;
+  document.getElementById('statCards').innerHTML =
+    kad('Jumlah Program', total) + kad('Program Utama JPN', utama) + kad('Sektor Terlibat', sektorAktif);
+
+  const bySektor={};
+  data.forEach(p=>{ bySektor[p.sektor]=(bySektor[p.sektor]||0)+1; });
+  const sektorArr=Object.keys(bySektor)
+    .map(k=>({label:k.replace('Sektor ',''), val:bySektor[k], warna:WARNA[k]||'#1d4e89'}))
+    .sort((a,b)=>b.val-a.val);
+  document.getElementById('chartSektor').innerHTML=hbars(sektorArr);
+
+  const bul=['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'];
+  const byBulan=new Array(12).fill(0);
+  data.forEach(p=>{ if(p.mula){ const m=+p.mula.slice(5,7)-1; if(m>=0&&m<12) byBulan[m]++; }});
+  document.getElementById('chartBulan').innerHTML=vbars(bul.map((b,i)=>({label:b,val:byBulan[i]})));
+
+  const byKat={};
+  data.forEach(p=>{ const k=(p.kategori||'').trim()||'(Tiada)'; byKat[k]=(byKat[k]||0)+1; });
+  const katArr=Object.keys(byKat).map(k=>({label:k,val:byKat[k]}))
+    .sort((a,b)=>b.val-a.val).slice(0,10);
+  document.getElementById('chartKategori').innerHTML=hbars(katArr,'#1d4e89');
+}
+function kad(label,val){ return '<div class="stat-card"><div class="sc-val">'+val+'</div><div class="sc-lbl">'+esc(label)+'</div></div>'; }
+function hbars(arr, fixedColor){
+  if(!arr.length) return '<p class="chart-empty">Tiada data untuk penapis semasa.</p>';
+  const max=Math.max(...arr.map(a=>a.val));
+  return '<div class="hbars">'+arr.map(a=>{
+    const w=max?Math.round(a.val/max*100):0; const c=fixedColor||a.warna||'#1d4e89';
+    return '<div class="hbar-row"><span class="hbar-lbl" title="'+esc(a.label)+'">'+esc(a.label)+'</span>'+
+      '<span class="hbar-track"><span class="hbar-fill" style="width:'+w+'%;background:'+c+'"></span></span>'+
+      '<span class="hbar-val">'+a.val+'</span></div>';
+  }).join('')+'</div>';
+}
+function vbars(arr){
+  const max=Math.max(1,...arr.map(a=>a.val));
+  return '<div class="vbars">'+arr.map(a=>{
+    const h=Math.round(a.val/max*100);
+    return '<div class="vbar-col"><span class="vbar-val">'+(a.val||'')+'</span>'+
+      '<span class="vbar-track"><span class="vbar-fill" style="height:'+h+'%"></span></span>'+
+      '<span class="vbar-lbl">'+a.label+'</span></div>';
+  }).join('')+'</div>';
 }
 function plusOneDay(d){ // FullCalendar end (allDay) bersifat exclusive
   const dt=new Date(d+'T00:00:00'); dt.setDate(dt.getDate()+1);
@@ -830,7 +998,7 @@ async function doSave(){
     p.id=r.id; p.kemaskini=new Date().toISOString().slice(0,10); p.oleh=SESSION.nama;
     const idx=PROGRAM.findIndex(x=>x.id===r.id);
     if(idx>-1) PROGRAM[idx]=p; else PROGRAM.push(p);
-    refreshEvents(); updateKonflikCount();
+    buildFilterDropdowns(); applyFilters(); updateKonflikCount();
 
     if(r.clashes && r.clashes.length){
       // tunjuk amaran dalam borang, jangan tutup
@@ -858,7 +1026,7 @@ async function doDelete(){
   const r=await api('deleteProgram',{id});
   if(!r.ok){ toast(r.error||'Gagal memadam','err'); return; }
   PROGRAM=PROGRAM.filter(x=>x.id!==id);
-  refreshEvents(); updateKonflikCount(); closeForm(); toast('Program dipadam');
+  applyFilters(); updateKonflikCount(); closeForm(); toast('Program dipadam');
 }
 
 /* =================== DETAIL =================== */
@@ -1136,7 +1304,7 @@ async function doImport(){
 
 async function reloadPrograms(){
   try{ const r=await api('bootstrap',{});
-    if(r&&r.ok){ PROGRAM=r.program||[]; refreshEvents(); updateKonflikCount(); }
+    if(r&&r.ok){ PROGRAM=r.program||[]; buildFilterDropdowns(); refreshEvents(); updateKonflikCount(); if(currentView==='analitik') buildAnalitik(); }
   }catch(e){}
 }
 
