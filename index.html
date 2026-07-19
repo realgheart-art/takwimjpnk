@@ -153,6 +153,20 @@ input,select{font-family:inherit;font-size:.92rem}
 .ll-badge{font-size:.7rem;font-weight:700;padding:4px 10px;border-radius:99px;flex-shrink:0}
 .ll-badge.done{background:#e8f3ec;color:var(--ok)}
 .ll-badge.pending{background:#fdeceb;color:var(--danger)}
+.pv-doc{font-size:.86rem;color:var(--ink);line-height:1.6}
+.pv-info{background:var(--paper-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:16px}
+.pv-row{display:flex;gap:12px;padding:3px 0}
+.pv-k{width:130px;flex-shrink:0;font-weight:700;color:var(--muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.02em;padding-top:2px}
+.pv-v{flex:1}
+.pv-sec-t{font-family:'Plus Jakarta Sans';font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);
+  font-weight:700;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.pv-sec-b{white-space:normal}
+.pv-gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:4px}
+.pv-gallery img{width:100%;border-radius:8px;border:1px solid var(--line);display:block}
+.pv-sign{margin-top:20px;font-size:.85rem}
+.pv-sign b{color:var(--navy)}
+.pv-sign span{color:var(--muted);font-size:.8rem}
+.pv-meta{margin-top:14px;font-size:.74rem;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
 .grp input:focus,.grp select:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(184,134,11,.12)}
 .vip-box{border:1.5px solid var(--line);border-radius:9px;background:#fff;padding:8px;max-height:128px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px}
 .form-sec{font-family:'Plus Jakarta Sans';font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);
@@ -609,6 +623,21 @@ input,select{font-family:inherit;font-size:.92rem}
   </div>
 </div>
 
+<!-- ============ MODAL: PRATONTON LAPORAN ============ -->
+<div class="overlay" id="previewOverlay">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">Pratonton Laporan</div>
+        <h3 id="pvTitle">—</h3>
+      </div>
+      <button class="x-btn" onclick="closePreview()">×</button>
+    </div>
+    <div class="modal-body" id="pvBody"></div>
+    <div class="modal-foot" id="pvFoot"></div>
+  </div>
+</div>
+
 <!-- ============ MODAL: SENARAI LAPORAN ============ -->
 <div class="overlay" id="laporListOverlay">
   <div class="modal" style="max-width:640px">
@@ -629,6 +658,7 @@ input,select{font-family:inherit;font-size:.92rem}
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="closeLaporanList()">Tutup</button>
+      <button class="btn-save" id="pukalBtn" onclick="muatTurunPukal()">⤓ Muat Turun Semua</button>
     </div>
   </div>
 </div>
@@ -1280,7 +1310,7 @@ function laporanBlock(p, boleh){
        (p.laporanTarikh?' · '+fmtTarikh(p.laporanTarikh):'')+
        (p.laporanOleh?' · '+esc(p.laporanOleh):'')+'</div>'+
        '<div class="lapor-btns">'+
-       '<button class="lapor-view" onclick="muatTurunLaporan(\''+p.id+'\')">⤓ Muat Turun PDF</button>';
+       '<button class="lapor-view" onclick="openPreview(\''+p.id+'\')">👁 Pratonton</button>';
     if(boleh){
       h+='<button class="lapor-ganti" onclick="openLaporanEditor(\''+p.id+'\')">Edit Laporan</button>'+
          '<button class="lapor-padam" onclick="padamLaporan(\''+p.id+'\')">Padam</button>';
@@ -1420,22 +1450,19 @@ function loadImgMeta(im){
     i.src=src;
   });
 }
-async function janaLaporanPDF(p, d, imejArr){
-  const logo=await getLogo();
-  const imgs=(await Promise.all((imejArr||[]).map(loadImgMeta))).filter(Boolean);
-  const { jsPDF }=window.jspdf;
-  const doc=new jsPDF({unit:'mm',format:'a4'});
-  const PW=210,PH=297,M=15,TOP=34,FOOT=13,NAVY=[15,41,66],BRASS=[184,134,11],INK=[40,40,40];
-  const W=PW-2*M;
+const LAP_PW=210, LAP_PH=297, LAP_M=15, LAP_TOP=34, LAP_FOOT=13;
+const LAP_NAVY=[15,41,66], LAP_BRASS=[184,134,11], LAP_INK=[40,40,40];
+const LAP_W=LAP_PW-2*LAP_M;
+
+function drawLaporanContent(doc, p, d, imgs){
+  const PW=LAP_PW,PH=LAP_PH,M=LAP_M,TOP=LAP_TOP,FOOT=LAP_FOOT,W=LAP_W,NAVY=LAP_NAVY,BRASS=LAP_BRASS,INK=LAP_INK;
   let y=TOP;
   const need=h=>{ if(y+h>PH-FOOT){ doc.addPage(); y=TOP; } };
 
-  // tajuk program
   doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...NAVY);
-  doc.text(doc.splitTextToSize(p.nama||'Laporan Program', W), M, y+2); 
+  doc.text(doc.splitTextToSize(p.nama||'Laporan Program', W), M, y+2);
   y+=doc.splitTextToSize(p.nama||'', W).length*6+3;
 
-  // kotak maklumat program (auto)
   const tempoh = p.mula===p.tamat ? fmtTarikh(p.mula) : fmtTarikh(p.mula)+' – '+fmtTarikh(p.tamat);
   const info=[
     ['Sektor', p.sektor],
@@ -1445,9 +1472,7 @@ async function janaLaporanPDF(p, d, imejArr){
     ['Tetamu Utama', (p.vip&&p.vip.length)?p.vip.join(', '):'—'],
     ['Kehadiran', d.kehadiran||'—']
   ];
-  doc.setDrawColor(227,220,201); doc.setFillColor(250,248,243);
-  const infoTop=y; let iy=y+5;
-  doc.setFontSize(9);
+  const infoTop=y; let iy=y+5; doc.setFontSize(9);
   info.forEach(rw=>{
     doc.setFont('helvetica','bold'); doc.setTextColor(...NAVY); doc.text(rw[0], M+3, iy);
     doc.setFont('helvetica','normal'); doc.setTextColor(...INK);
@@ -1458,13 +1483,12 @@ async function janaLaporanPDF(p, d, imejArr){
   doc.setDrawColor(...BRASS); doc.setLineWidth(0.4); doc.roundedRect(M, infoTop, W, iy-infoTop+1, 2,2);
   y=iy+7;
 
-  // seksyen naratif
   function seksyen(tajuk, teks){
     if(!teks) return;
     const body=doc.splitTextToSize(teks, W);
     need(9+body.length*4.6);
     doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...BRASS);
-    doc.text(tajuk.toUpperCase(), M, y+3); 
+    doc.text(tajuk.toUpperCase(), M, y+3);
     doc.setDrawColor(...BRASS); doc.setLineWidth(0.3); doc.line(M,y+4.5,M+W,y+4.5);
     y+=8;
     doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...INK);
@@ -1475,8 +1499,7 @@ async function janaLaporanPDF(p, d, imejArr){
   seksyen('Pencapaian / Impak', d.pencapaian);
   seksyen('Isu & Cadangan Penambahbaikan', d.isu);
 
-  // galeri gambar (grid 2 lajur)
-  if(imgs.length){
+  if(imgs && imgs.length){
     need(10);
     doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...BRASS);
     doc.text('GAMBAR PROGRAM', M, y+3);
@@ -1485,10 +1508,8 @@ async function janaLaporanPDF(p, d, imejArr){
     for(let i=0;i<imgs.length;i++){
       const col=i%cols;
       if(col===0) need(chh+gap);
-      const x=M+col*(cw+gap), cy=y;
-      const im=imgs[i];
-      const sc=Math.min(cw/im.w, chh/im.h);
-      const dw=im.w*sc, dh=im.h*sc, ox=x+(cw-dw)/2, oy=cy+(chh-dh)/2;
+      const x=M+col*(cw+gap), cy=y, im=imgs[i];
+      const sc=Math.min(cw/im.w, chh/im.h), dw=im.w*sc, dh=im.h*sc, ox=x+(cw-dw)/2, oy=cy+(chh-dh)/2;
       doc.setFillColor(245,245,245); doc.setDrawColor(227,220,201); doc.setLineWidth(0.2);
       doc.rect(x,cy,cw,chh,'FD');
       try{ doc.addImage(im.src,'JPEG',ox,oy,dw,dh); }catch(e){ try{ doc.addImage(im.src,'PNG',ox,oy,dw,dh); }catch(e2){} }
@@ -1497,34 +1518,129 @@ async function janaLaporanPDF(p, d, imejArr){
     y+=2;
   }
 
-  // tandatangan
-  need(30);
-  y+=6;
+  need(30); y+=6;
   doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...INK);
   doc.text('Disediakan oleh,', M, y); y+=16;
   doc.setDrawColor(120); doc.setLineWidth(0.2); doc.line(M, y, M+70, y); y+=5;
   doc.setFont('helvetica','bold'); doc.text((d.disediakanOleh||'').toUpperCase(), M, y); y+=5;
   doc.setFont('helvetica','normal'); doc.setTextColor(90); doc.text(d.jawatan||'', M, y);
-
-  // kepala & kaki setiap muka surat
+}
+function drawLaporanHF(doc, logo, i, total, genDate){
+  const PW=LAP_PW,PH=LAP_PH,M=LAP_M,NAVY=LAP_NAVY,BRASS=LAP_BRASS;
+  if(logo) doc.addImage(logo,'PNG',M,7,17,17);
+  doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...NAVY);
+  doc.text('JABATAN PENDIDIKAN NEGERI KEDAH', M+21, 13);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...BRASS);
+  doc.text('LAPORAN PROGRAM UTAMA', M+21, 19);
+  doc.setDrawColor(...BRASS); doc.setLineWidth(0.6); doc.line(M,27,PW-M,27);
+  doc.setDrawColor(220); doc.setLineWidth(0.2); doc.line(M,PH-9,PW-M,PH-9);
+  doc.setFontSize(7.5); doc.setTextColor(120);
+  doc.text('Dijana '+genDate+'  •  Takwim JPN Kedah', M, PH-5);
+  doc.text('Muka surat '+i+' / '+total, PW-M, PH-5, {align:'right'});
+}
+async function buildLaporanDoc(entries){
+  const logo=await getLogo();
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  entries.forEach((e,idx)=>{
+    if(idx>0) doc.addPage();
+    drawLaporanContent(doc, e.p, e.d, e.imgs);
+  });
   const genDate=fmtTarikh(new Date().toISOString().slice(0,10));
   const total=doc.getNumberOfPages();
-  for(let i=1;i<=total;i++){
-    doc.setPage(i);
-    if(logo) doc.addImage(logo,'PNG',M,7,17,17);
-    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...NAVY);
-    doc.text('JABATAN PENDIDIKAN NEGERI KEDAH', M+21, 13);
-    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...BRASS);
-    doc.text('LAPORAN PROGRAM UTAMA', M+21, 19);
-    doc.setDrawColor(...BRASS); doc.setLineWidth(0.6); doc.line(M,27,PW-M,27);
-    doc.setDrawColor(220); doc.setLineWidth(0.2); doc.line(M,PH-9,PW-M,PH-9);
-    doc.setFontSize(7.5); doc.setTextColor(120);
-    doc.text('Dijana '+genDate+'  •  Takwim JPN Kedah', M, PH-5);
-    doc.text('Muka surat '+i+' / '+total, PW-M, PH-5, {align:'right'});
-  }
+  for(let i=1;i<=total;i++){ doc.setPage(i); drawLaporanHF(doc, logo, i, total, genDate); }
+  return doc;
+}
+async function janaLaporanPDF(p, d, imejArr){
+  const imgs=(await Promise.all((imejArr||[]).map(loadImgMeta))).filter(Boolean);
+  const doc=await buildLaporanDoc([{p, d, imgs}]);
   const safe=(p.nama||'Laporan').replace(/[^\w ]/g,'').replace(/\s+/g,'_').slice(0,50);
   doc.save('Laporan_'+safe+'.pdf');
   toast('✓ Laporan PDF dijana');
+}
+
+/* ---- Muat Turun Pukal (satu PDF gabungan) ---- */
+async function muatTurunPukal(){
+  // skop: Pengguna Sektor -> sektor sendiri; Admin -> semua
+  let senarai=PROGRAM.filter(p=>p.utama && p.laporanAda);
+  if(SESSION && SESSION.peranan==='Pengguna Sektor')
+    senarai=senarai.filter(p=>p.sektor===SESSION.sektor);
+  if(!senarai.length){ toast('Tiada laporan dihantar untuk dimuat turun','err'); return; }
+  senarai.sort((a,b)=> a.sektor.localeCompare(b.sektor) || (a.mula||'').localeCompare(b.mula||''));
+
+  if(!confirm('Muat turun '+senarai.length+' laporan sebagai SATU fail PDF gabungan?')) return;
+  const okPdf=await ensureLib(hasJsPDF, JSPDF_CDNS);
+  if(!okPdf){ toast('Pustaka PDF gagal dimuat','err'); return; }
+
+  const btn=document.getElementById('pukalBtn'); if(btn){ btn.disabled=true; }
+  const entries=[];
+  try{
+    for(let i=0;i<senarai.length;i++){
+      const p=senarai[i];
+      if(btn) btn.textContent='Menjana… ('+(i+1)+'/'+senarai.length+')';
+      toast('Menjana laporan '+(i+1)+'/'+senarai.length+'…');
+      const r=await api('getLaporan',{id:p.id});
+      if(r && r.ok && r.ada){
+        const imgs=(await Promise.all((r.imej||[]).map(loadImgMeta))).filter(Boolean);
+        entries.push({p, d:r.data||{}, imgs});
+      }
+    }
+    if(!entries.length){ toast('Tiada data laporan','err'); return; }
+    const doc=await buildLaporanDoc(entries);
+    const skopNama = (SESSION && SESSION.peranan==='Pengguna Sektor')
+      ? SESSION.sektor.replace('Sektor ','').replace(/[^\w]/g,'-') : 'Semua-Sektor';
+    doc.save('Laporan-Gabungan_'+skopNama+'_'+entries.length+'.pdf');
+    toast('✓ '+entries.length+' laporan digabungkan');
+  }catch(e){ console.error(e); toast('Gagal menjana gabungan','err'); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent='⤓ Muat Turun Semua'; } }
+}
+
+/* =================== PRATONTON LAPORAN (HTML) =================== */
+let previewCache=null;
+async function openPreview(id){
+  const p=getProg(id); if(!p) return;
+  closeDetail(); closeLaporanList();
+  document.getElementById('pvTitle').textContent=p.nama;
+  document.getElementById('pvBody').innerHTML='<div class="loading" style="padding:30px"><div class="spin"></div><br>Memuatkan laporan…</div>';
+  document.getElementById('pvFoot').innerHTML='<button class="btn-cancel" onclick="closePreview()">Tutup</button>';
+  document.getElementById('previewOverlay').classList.add('show');
+  try{
+    const r=await api('getLaporan',{id});
+    if(!r.ok || !r.ada){ document.getElementById('pvBody').innerHTML='<p class="chart-empty">Laporan tiada.</p>'; return; }
+    previewCache={p, d:r.data||{}, imej:r.imej||[]};
+    document.getElementById('pvBody').innerHTML=renderPreviewHTML(p, r.data||{}, r.imej||[], r.tarikh, r.oleh);
+    const boleh=SESSION && (SESSION.peranan==='Admin' || (SESSION.peranan==='Pengguna Sektor' && SESSION.sektor===p.sektor));
+    document.getElementById('pvFoot').innerHTML=
+      '<button class="btn-cancel" onclick="closePreview()">Tutup</button>'+
+      (boleh?'<button class="btn-cancel" onclick="closePreview();openLaporanEditor(\''+p.id+'\')">Edit</button>':'')+
+      '<button class="btn-save" onclick="muatTurunDariPreview()">⤓ Muat Turun PDF</button>';
+  }catch(e){ document.getElementById('pvBody').innerHTML='<p class="chart-empty">Ralat memuatkan laporan.</p>'; }
+}
+function closePreview(){ document.getElementById('previewOverlay').classList.remove('show'); }
+function muatTurunDariPreview(){ if(previewCache) janaLaporanPDF(previewCache.p, previewCache.d, previewCache.imej); }
+function renderPreviewHTML(p, d, imej, tarikh, oleh){
+  const tempoh=p.mula===p.tamat?fmtTarikh(p.mula):fmtTarikh(p.mula)+' – '+fmtTarikh(p.tamat);
+  const row=(k,v)=>'<div class="pv-row"><span class="pv-k">'+k+'</span><span class="pv-v">'+(v||'—')+'</span></div>';
+  const sec=(t,teks)=> teks?('<div class="pv-sec-t">'+t+'</div><div class="pv-sec-b">'+esc(teks).replace(/\n/g,'<br>')+'</div>'):'';
+  let h='<div class="pv-doc">';
+  h+='<div class="pv-info">'+
+    row('Sektor',esc(p.sektor))+row('Tarikh Dirancang',tempoh)+
+    row('Tarikh Sebenar',d.tarikhSebenar?fmtTarikh(d.tarikhSebenar):'—')+
+    row('Tempat',esc(p.tempat))+row('Tetamu Utama',(p.vip&&p.vip.length)?p.vip.map(esc).join(', '):'—')+
+    row('Kehadiran',esc(d.kehadiran))+'</div>';
+  h+=sec('Objektif Program',d.objektif);
+  h+=sec('Ringkasan Pelaksanaan',d.ringkasan);
+  h+=sec('Pencapaian / Impak',d.pencapaian);
+  h+=sec('Isu & Cadangan Penambahbaikan',d.isu);
+  if(imej && imej.length){
+    h+='<div class="pv-sec-t">Gambar Program</div><div class="pv-gallery">';
+    imej.forEach(im=>{ h+='<img src="data:'+(im.mime||'image/jpeg')+';base64,'+im.data+'">'; });
+    h+='</div>';
+  }
+  h+='<div class="pv-sign">Disediakan oleh,<br><br><b>'+esc(d.disediakanOleh||'')+'</b><br><span>'+esc(d.jawatan||'')+'</span></div>';
+  if(tarikh) h+='<div class="pv-meta">Kemaskini: '+fmtTarikh(tarikh)+(oleh?' · '+esc(oleh):'')+'</div>';
+  h+='</div>';
+  return h;
 }
 
 /* =================== KONFLIK (VIP & TEMPAT) — Admin =================== */
@@ -2109,7 +2225,7 @@ function toast(msg,type){
   clearTimeout(toastT); toastT=setTimeout(()=>el.className='toast',3200);
 }
 // tutup overlay bila klik latar
-['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay','importOverlay','laporOverlay','arkibOverlay','laporListOverlay'].forEach(id=>{
+['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay','importOverlay','laporOverlay','arkibOverlay','laporListOverlay','previewOverlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) e.target.classList.remove('show'); });
 });
 
