@@ -149,6 +149,20 @@ input,select{font-family:inherit;font-size:.92rem}
 .sektor-tag{display:inline-block;padding:3px 11px;border-radius:99px;color:#fff;font-size:.78rem;font-weight:600}
 .utama-badge{display:inline-block;background:linear-gradient(135deg,var(--brass),var(--brass-soft));color:var(--navy);
   font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:99px;letter-spacing:.02em;margin-bottom:4px}
+.lapor-sec{margin-top:14px;padding:14px;background:#fff8e6;border:1.5px solid var(--brass-pale);border-radius:10px}
+.lapor-head{font-weight:700;color:var(--brass);font-size:.84rem;margin-bottom:8px}
+.lapor-ok{font-size:.82rem;color:var(--ok);font-weight:600;margin-bottom:10px}
+.lapor-none{font-size:.82rem;color:var(--muted);margin-bottom:10px}
+.lapor-note{font-size:.76rem;color:var(--muted);margin-top:4px}
+.lapor-btns{display:flex;gap:8px;flex-wrap:wrap}
+.lapor-view{background:var(--navy);color:#fff;font-weight:600;font-size:.8rem;padding:8px 14px;border-radius:8px;text-decoration:none}
+.lapor-view:hover{background:var(--navy-2)}
+.lapor-upload{background:var(--brass);color:var(--navy);font-weight:700;font-size:.8rem;padding:8px 14px;border-radius:8px}
+.lapor-upload:hover{background:var(--brass-soft)}
+.lapor-ganti{background:#fff;color:var(--navy);font-weight:600;font-size:.8rem;padding:8px 14px;border-radius:8px;border:1.5px solid var(--line)}
+.lapor-ganti:hover{border-color:var(--brass)}
+.lapor-padam{background:#fff;color:var(--danger);font-weight:600;font-size:.8rem;padding:8px 14px;border-radius:8px;border:1.5px solid #f1c9c6}
+.lapor-padam:hover{background:#fdeceb}
 .kf-sec{font-family:'Plus Jakarta Sans';font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);
   font-weight:700;margin:14px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--line)}
 .kf-sec:first-child{margin-top:0}
@@ -521,6 +535,7 @@ input,select{font-family:inherit;font-size:.92rem}
   </div>
 </div>
 
+<input type="file" id="laporanFile" accept="application/pdf,.pdf" style="display:none" onchange="uploadLaporan(this)">
 <div class="toast" id="toast"></div>
 
 <!-- ============ MODAL: EXPORT PDF ============ -->
@@ -562,7 +577,7 @@ input,select{font-family:inherit;font-size:.92rem}
 <script>
 /* =================== KONFIGURASI =================== */
 // >>> GANTIKAN dengan URL Web App GAS anda (berakhir dengan /exec) <<<
-const GAS_URL = "https://script.google.com/macros/s/AKfycbwT2AleHm6g_NRCvCKkXNq2w6YQgyrtl1uvTKqrkxD7ir7BZHjQCgS_jXEU-cRU2sN6/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxA6vnKmMTWpFfcbBIo9H1ak_WNsS89igNwdAMNCzvDNNz7D9fUDWVhhe2pGpi5dkE/exec";
 
 /* =================== PWA =================== */
 let deferredPrompt = null;
@@ -1077,6 +1092,8 @@ function openDetail(p){
     (p.utama?'<span class="utama-badge">★ Program Utama JPN</span><br>':'') + esc(p.nama);
   const tempoh = p.mula===p.tamat ? fmtTarikh(p.mula) : fmtTarikh(p.mula)+' – '+fmtTarikh(p.tamat);
   const baris=(k,v)=> v ? `<div class="detail-row"><span class="k">${k}</span><span class="v">${v}</span></div>` : '';
+  const boleh = SESSION && (SESSION.peranan==='Admin' ||
+                (SESSION.peranan==='Pengguna Sektor' && SESSION.sektor===p.sektor));
   let html='';
   html+=baris('Sektor', `<span class="sektor-tag" style="background:${WARNA[p.sektor]||'#888'}">${esc(p.sektor)}</span>`);
   html+=baris('Tarikh', tempoh);
@@ -1093,20 +1110,81 @@ function openDetail(p){
   html+=baris('Sasaran', esc(p.sasaran) + (p.bilSasaran?` (${esc(p.bilSasaran)})`:''));
   html+=baris('Peruntukan', esc(p.peruntukan));
   html+=baris('Kemaskini', p.kemaskini?`${fmtTarikh(p.kemaskini)} · ${esc(p.oleh||'')}`:'');
+
+  // Bahagian Laporan — hanya Program Utama + pengguna log masuk
+  if(p.utama && SESSION){
+    html+=laporanBlock(p, boleh);
+  }
   document.getElementById('detailBody').innerHTML = html || '<p style="color:var(--muted)">Tiada butiran.</p>';
 
-  // kebenaran edit
   const foot=document.getElementById('detailFoot');
-  const boleh = SESSION && (SESSION.peranan==='Admin' ||
-                (SESSION.peranan==='Pengguna Sektor' && SESSION.sektor===p.sektor));
   foot.innerHTML = boleh
     ? `<button class="btn-cancel" onclick="closeDetail()">Tutup</button>
        <button class="btn-save" onclick="closeDetail();openForm(getProg('${p.id}'))">Edit Program</button>`
     : `<button class="btn-cancel" onclick="closeDetail()">Tutup</button>`;
   document.getElementById('detailOverlay').classList.add('show');
 }
+function laporanBlock(p, boleh){
+  let h='<div class="lapor-sec"><div class="lapor-head">📄 Laporan Program (PDF)</div>';
+  if(p.laporanURL){
+    h+='<div class="lapor-ok">✓ Laporan dimuat naik'+
+       (p.laporanTarikh?' · '+fmtTarikh(p.laporanTarikh):'')+
+       (p.laporanOleh?' · '+esc(p.laporanOleh):'')+'</div>'+
+       '<div class="lapor-btns">'+
+       '<a class="lapor-view" href="'+esc(p.laporanURL)+'" target="_blank" rel="noopener">Lihat Laporan ↗</a>';
+    if(boleh){
+      h+='<button class="lapor-ganti" onclick="pilihLaporan(\''+p.id+'\')">Ganti</button>'+
+         '<button class="lapor-padam" onclick="padamLaporan(\''+p.id+'\')">Padam</button>';
+    }
+    h+='</div>';
+  }else{
+    h+='<div class="lapor-none">Belum dimuat naik.</div>';
+    if(boleh){
+      h+='<div class="lapor-btns"><button class="lapor-upload" onclick="pilihLaporan(\''+p.id+'\')">⤒ Muat Naik PDF (maks 5 MB)</button></div>';
+    }else{
+      h+='<div class="lapor-note">Hanya pemilik program (sektor berkenaan) boleh memuat naik.</div>';
+    }
+  }
+  h+='</div>';
+  return h;
+}
 function closeDetail(){ document.getElementById('detailOverlay').classList.remove('show'); }
 function getProg(id){ return PROGRAM.find(x=>x.id===id); }
+
+/* =================== LAPORAN PROGRAM (PDF) =================== */
+let laporanTargetId=null;
+function pilihLaporan(id){ laporanTargetId=id; document.getElementById('laporanFile').value=''; document.getElementById('laporanFile').click(); }
+function uploadLaporan(input){
+  const f=input.files && input.files[0];
+  if(!f || !laporanTargetId) return;
+  if(f.type.indexOf('pdf')===-1 && !/\.pdf$/i.test(f.name)){ toast('Fail mesti PDF','err'); return; }
+  if(f.size > 5*1024*1024){ toast('Fail melebihi had 5 MB','err'); return; }
+  const id=laporanTargetId;
+  toast('Memuat naik laporan…');
+  const reader=new FileReader();
+  reader.onload=async ()=>{
+    try{
+      const b64=String(reader.result).split(',')[1]; // buang prefix data:
+      const r=await api('saveLaporan',{id, fileData:b64, fileName:f.name, mimeType:f.type||'application/pdf'});
+      if(!r.ok){ toast(r.error||'Muat naik gagal','err'); return; }
+      const prog=getProg(id);
+      if(prog){ prog.laporanURL=r.url; prog.laporanTarikh=r.tarikh; prog.laporanOleh=r.oleh; openDetail(prog); }
+      toast('✓ Laporan berjaya dimuat naik');
+    }catch(e){ toast('Ralat sambungan semasa muat naik','err'); }
+  };
+  reader.onerror=()=>toast('Gagal membaca fail','err');
+  reader.readAsDataURL(f);
+}
+async function padamLaporan(id){
+  if(!confirm('Padam laporan PDF ini?')) return;
+  try{
+    const r=await api('deleteLaporan',{id});
+    if(!r.ok){ toast(r.error||'Gagal memadam','err'); return; }
+    const prog=getProg(id);
+    if(prog){ prog.laporanURL=''; prog.laporanTarikh=''; prog.laporanOleh=''; openDetail(prog); }
+    toast('Laporan dipadam');
+  }catch(e){ toast('Ralat sambungan','err'); }
+}
 
 /* =================== KONFLIK (VIP & TEMPAT) — Admin =================== */
 function tindih(a,b){
