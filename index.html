@@ -122,6 +122,17 @@ input,select{font-family:inherit;font-size:.92rem}
 .grp{margin-bottom:15px}
 .grp label{display:block;font-size:.76rem;font-weight:700;color:var(--muted);margin-bottom:6px;letter-spacing:.02em}
 .grp input,.grp select{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;background:#fff;transition:.15s}
+.grp textarea{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:9px;background:#fff;font-family:inherit;font-size:.92rem;resize:vertical;transition:.15s}
+.grp textarea:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(184,134,11,.12)}
+.lap-imej-box{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.lap-thumb{position:relative;aspect-ratio:4/3;border-radius:9px;overflow:hidden;border:1.5px solid var(--line)}
+.lap-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.lap-thumb button{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:rgba(179,38,30,.92);
+  color:#fff;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center}
+.lap-add{aspect-ratio:4/3;border:1.5px dashed var(--brass);border-radius:9px;background:#fff8e6;color:var(--brass);
+  font-size:1.4rem;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.lap-add span{font-size:.62rem;font-weight:600;line-height:1.1;text-align:center}
+.lap-add:hover{background:#fff2cc}
 .grp input:focus,.grp select:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(184,134,11,.12)}
 .vip-box{border:1.5px solid var(--line);border-radius:9px;background:#fff;padding:8px;max-height:128px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px}
 .form-sec{font-family:'Plus Jakarta Sans';font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brass);
@@ -535,7 +546,45 @@ input,select{font-family:inherit;font-size:.92rem}
   </div>
 </div>
 
-<input type="file" id="laporanFile" accept="application/pdf,.pdf" style="display:none" onchange="uploadLaporan(this)">
+<input type="file" id="lapImejInput" accept="image/*" multiple style="display:none" onchange="tambahGambar(this)">
+
+<!-- ============ MODAL: EDITOR LAPORAN ============ -->
+<div class="overlay" id="laporOverlay">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">Laporan Program Utama</div>
+        <h3 id="lapProgNama">—</h3>
+        <div id="lapProgInfo" style="font-size:.78rem;color:var(--muted);margin-top:2px"></div>
+      </div>
+      <button class="x-btn" onclick="closeLaporan()">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="lapLoad" style="display:none;font-size:.82rem;color:var(--muted);margin-bottom:10px">Memuatkan laporan sedia ada…</div>
+      <div class="row2">
+        <div class="grp"><label>Tarikh Sebenar Program</label><input type="date" id="lapTarikh"></div>
+        <div class="grp"><label>Bilangan Kehadiran / Penyertaan</label><input type="text" id="lapKehadiran" placeholder="cth: 120 orang"></div>
+      </div>
+      <div class="grp"><label>Objektif Program</label><textarea id="lapObjektif" rows="2" placeholder="Objektif ringkas…"></textarea></div>
+      <div class="grp"><label>Ringkasan Pelaksanaan</label><textarea id="lapRingkasan" rows="4" placeholder="Apa yang berlaku sepanjang program…"></textarea></div>
+      <div class="grp"><label>Pencapaian / Impak</label><textarea id="lapPencapaian" rows="3" placeholder="Satu poin satu baris…"></textarea></div>
+      <div class="grp"><label>Isu &amp; Cadangan Penambahbaikan</label><textarea id="lapIsu" rows="3" placeholder="Isu dihadapi & cadangan…"></textarea></div>
+      <div class="grp">
+        <label>Gambar Program <span id="lapImejCount" style="color:var(--brass)">0/6</span></label>
+        <div class="lap-imej-box" id="lapImejBox"></div>
+      </div>
+      <div class="row2">
+        <div class="grp"><label>Disediakan Oleh</label><input type="text" id="lapDisedia" placeholder="Nama penuh"></div>
+        <div class="grp"><label>Jawatan</label><input type="text" id="lapJawatan" placeholder="cth: Penolong Pegawai Pendidikan"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeLaporan()">Batal</button>
+      <button class="btn-save" id="lapSaveBtn" onclick="saveLaporanData()">Simpan Laporan</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ============ MODAL: EXPORT PDF ============ -->
@@ -577,7 +626,7 @@ input,select{font-family:inherit;font-size:.92rem}
 <script>
 /* =================== KONFIGURASI =================== */
 // >>> GANTIKAN dengan URL Web App GAS anda (berakhir dengan /exec) <<<
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxA6vnKmMTWpFfcbBIo9H1ak_WNsS89igNwdAMNCzvDNNz7D9fUDWVhhe2pGpi5dkE/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyipu_e02Vfi_qHo4gkWITn-qvfbDWU62XNe0Strx18U8E2zRqQObumpJxcwDDO54MI/exec";
 
 /* =================== PWA =================== */
 let deferredPrompt = null;
@@ -1125,24 +1174,24 @@ function openDetail(p){
   document.getElementById('detailOverlay').classList.add('show');
 }
 function laporanBlock(p, boleh){
-  let h='<div class="lapor-sec"><div class="lapor-head">📄 Laporan Program (PDF)</div>';
-  if(p.laporanURL){
-    h+='<div class="lapor-ok">✓ Laporan dimuat naik'+
+  let h='<div class="lapor-sec"><div class="lapor-head">📄 Laporan Program</div>';
+  if(p.laporanAda){
+    h+='<div class="lapor-ok">✓ Laporan disediakan'+
        (p.laporanTarikh?' · '+fmtTarikh(p.laporanTarikh):'')+
        (p.laporanOleh?' · '+esc(p.laporanOleh):'')+'</div>'+
        '<div class="lapor-btns">'+
-       '<a class="lapor-view" href="'+esc(p.laporanURL)+'" target="_blank" rel="noopener">Lihat Laporan ↗</a>';
+       '<button class="lapor-view" onclick="muatTurunLaporan(\''+p.id+'\')">⤓ Muat Turun PDF</button>';
     if(boleh){
-      h+='<button class="lapor-ganti" onclick="pilihLaporan(\''+p.id+'\')">Ganti</button>'+
+      h+='<button class="lapor-ganti" onclick="openLaporanEditor(\''+p.id+'\')">Edit Laporan</button>'+
          '<button class="lapor-padam" onclick="padamLaporan(\''+p.id+'\')">Padam</button>';
     }
     h+='</div>';
   }else{
-    h+='<div class="lapor-none">Belum dimuat naik.</div>';
+    h+='<div class="lapor-none">Belum disediakan.</div>';
     if(boleh){
-      h+='<div class="lapor-btns"><button class="lapor-upload" onclick="pilihLaporan(\''+p.id+'\')">⤒ Muat Naik PDF (maks 5 MB)</button></div>';
+      h+='<div class="lapor-btns"><button class="lapor-upload" onclick="openLaporanEditor(\''+p.id+'\')">＋ Sediakan Laporan</button></div>';
     }else{
-      h+='<div class="lapor-note">Hanya pemilik program (sektor berkenaan) boleh memuat naik.</div>';
+      h+='<div class="lapor-note">Hanya pemilik program (sektor berkenaan) boleh menyediakan laporan.</div>';
     }
   }
   h+='</div>';
@@ -1151,39 +1200,231 @@ function laporanBlock(p, boleh){
 function closeDetail(){ document.getElementById('detailOverlay').classList.remove('show'); }
 function getProg(id){ return PROGRAM.find(x=>x.id===id); }
 
-/* =================== LAPORAN PROGRAM (PDF) =================== */
-let laporanTargetId=null;
-function pilihLaporan(id){ laporanTargetId=id; document.getElementById('laporanFile').value=''; document.getElementById('laporanFile').click(); }
-function uploadLaporan(input){
-  const f=input.files && input.files[0];
-  if(!f || !laporanTargetId) return;
-  if(f.type.indexOf('pdf')===-1 && !/\.pdf$/i.test(f.name)){ toast('Fail mesti PDF','err'); return; }
-  if(f.size > 5*1024*1024){ toast('Fail melebihi had 5 MB','err'); return; }
-  const id=laporanTargetId;
-  toast('Memuat naik laporan…');
-  const reader=new FileReader();
-  reader.onload=async ()=>{
-    try{
-      const b64=String(reader.result).split(',')[1]; // buang prefix data:
-      const r=await api('saveLaporan',{id, fileData:b64, fileName:f.name, mimeType:f.type||'application/pdf'});
-      if(!r.ok){ toast(r.error||'Muat naik gagal','err'); return; }
-      const prog=getProg(id);
-      if(prog){ prog.laporanURL=r.url; prog.laporanTarikh=r.tarikh; prog.laporanOleh=r.oleh; openDetail(prog); }
-      toast('✓ Laporan berjaya dimuat naik');
-    }catch(e){ toast('Ralat sambungan semasa muat naik','err'); }
-  };
-  reader.onerror=()=>toast('Gagal membaca fail','err');
-  reader.readAsDataURL(f);
+/* =================== LAPORAN PROGRAM =================== */
+let lapId=null;          // id program sedang disunting
+let lapImej=[];          // [{id?, b64(dataURL)}]
+
+function openLaporanEditor(id){
+  lapId=id; lapImej=[];
+  const p=getProg(id); if(!p) return;
+  closeDetail();
+  // reset borang
+  ['lapTarikh','lapObjektif','lapRingkasan','lapKehadiran','lapPencapaian','lapIsu','lapDisedia','lapJawatan']
+    .forEach(x=>{ const el=document.getElementById(x); if(el) el.value=''; });
+  document.getElementById('lapProgNama').textContent=p.nama;
+  document.getElementById('lapProgInfo').textContent=
+    p.sektor.replace('Sektor ','')+' · '+(p.mula===p.tamat?fmtTarikh(p.mula):fmtTarikh(p.mula)+'–'+fmtTarikh(p.tamat));
+  renderLapImej();
+  document.getElementById('laporOverlay').classList.add('show');
+
+  if(p.laporanAda){
+    // prefill dari server
+    document.getElementById('lapLoad').style.display='block';
+    api('getLaporan',{id}).then(r=>{
+      document.getElementById('lapLoad').style.display='none';
+      if(r && r.ok && r.ada){
+        const d=r.data||{};
+        const set=(x,v)=>{ const el=document.getElementById(x); if(el) el.value=v||''; };
+        set('lapTarikh',d.tarikhSebenar); set('lapObjektif',d.objektif); set('lapRingkasan',d.ringkasan);
+        set('lapKehadiran',d.kehadiran); set('lapPencapaian',d.pencapaian); set('lapIsu',d.isu);
+        set('lapDisedia',d.disediakanOleh); set('lapJawatan',d.jawatan);
+        lapImej=(r.imej||[]).map(im=>({id:im.id, b64:'data:'+(im.mime||'image/jpeg')+';base64,'+im.data}));
+        renderLapImej();
+      }
+    }).catch(()=>{ document.getElementById('lapLoad').style.display='none'; });
+  }
 }
+function closeLaporan(){ document.getElementById('laporOverlay').classList.remove('show'); }
+
+function tambahGambar(input){
+  const files=[...(input.files||[])];
+  input.value='';
+  files.forEach(f=>{
+    if(lapImej.length>=6){ toast('Maksimum 6 gambar','err'); return; }
+    if(f.type.indexOf('image')===-1){ toast('Fail mesti gambar','err'); return; }
+    downscaleImage(f,1400,0.75).then(b64=>{ lapImej.push({b64}); renderLapImej(); }).catch(()=>toast('Gagal proses gambar','err'));
+  });
+}
+function buangGambar(i){ lapImej.splice(i,1); renderLapImej(); }
+function renderLapImej(){
+  const box=document.getElementById('lapImejBox');
+  let h='';
+  lapImej.forEach((im,i)=>{ h+='<div class="lap-thumb"><img src="'+im.b64+'"><button onclick="buangGambar('+i+')">×</button></div>'; });
+  if(lapImej.length<6) h+='<button class="lap-add" onclick="document.getElementById(\'lapImejInput\').click()">＋<span>Tambah<br>gambar</span></button>';
+  box.innerHTML=h;
+  document.getElementById('lapImejCount').textContent=lapImej.length+'/6';
+}
+function downscaleImage(file,maxDim,q){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{ let w=img.width,h=img.height;
+      if(w>maxDim||h>maxDim){ const r=Math.min(maxDim/w,maxDim/h); w=Math.round(w*r); h=Math.round(h*r); }
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      res(c.toDataURL('image/jpeg',q));
+    };
+    img.onerror=rej;
+    const fr=new FileReader(); fr.onload=()=>img.src=fr.result; fr.onerror=rej; fr.readAsDataURL(file);
+  });
+}
+
+async function saveLaporanData(){
+  if(!lapId) return;
+  const g=id=>document.getElementById(id).value.trim();
+  const data={ tarikhSebenar:g('lapTarikh'), objektif:g('lapObjektif'), ringkasan:g('lapRingkasan'),
+    kehadiran:g('lapKehadiran'), pencapaian:g('lapPencapaian'), isu:g('lapIsu'),
+    disediakanOleh:g('lapDisedia'), jawatan:g('lapJawatan') };
+  const imej=lapImej.map(im=> im.id ? {id:im.id} : {data:im.b64.split(',')[1], name:'gambar.jpg'});
+  const btn=document.getElementById('lapSaveBtn'); btn.disabled=true; btn.textContent='Menyimpan…';
+  try{
+    const r=await api('saveLaporan',{id:lapId, data, imej});
+    if(!r.ok){ toast(r.error||'Gagal simpan laporan','err'); return; }
+    const prog=getProg(lapId);
+    if(prog){ prog.laporanAda=true; prog.laporanTarikh=r.tarikh; prog.laporanOleh=r.oleh; }
+    applyFilters();
+    closeLaporan();
+    toast('✓ Laporan disimpan');
+  }catch(e){ toast('Ralat sambungan','err'); }
+  finally{ btn.disabled=false; btn.textContent='Simpan Laporan'; }
+}
+
 async function padamLaporan(id){
-  if(!confirm('Padam laporan PDF ini?')) return;
+  if(!confirm('Padam laporan ini (termasuk gambar)?')) return;
   try{
     const r=await api('deleteLaporan',{id});
     if(!r.ok){ toast(r.error||'Gagal memadam','err'); return; }
     const prog=getProg(id);
-    if(prog){ prog.laporanURL=''; prog.laporanTarikh=''; prog.laporanOleh=''; openDetail(prog); }
+    if(prog){ prog.laporanAda=false; prog.laporanTarikh=''; prog.laporanOleh=''; }
+    applyFilters(); closeDetail();
     toast('Laporan dipadam');
   }catch(e){ toast('Ralat sambungan','err'); }
+}
+
+async function muatTurunLaporan(id){
+  const p=getProg(id); if(!p) return;
+  toast('Menjana laporan PDF…');
+  const okPdf = await ensureLib(hasJsPDF, JSPDF_CDNS);
+  if(!okPdf){ toast('Pustaka PDF gagal dimuat','err'); return; }
+  try{
+    const r=await api('getLaporan',{id});
+    if(!r.ok || !r.ada){ toast('Data laporan tiada','err'); return; }
+    await janaLaporanPDF(p, r.data||{}, r.imej||[]);
+  }catch(e){ console.error(e); toast('Gagal menjana laporan','err'); }
+}
+function loadImgMeta(im){
+  return new Promise(res=>{
+    const src='data:'+(im.mime||'image/jpeg')+';base64,'+im.data;
+    const i=new Image();
+    i.onload=()=>res({src,w:i.naturalWidth||4,h:i.naturalHeight||3});
+    i.onerror=()=>res(null);
+    i.src=src;
+  });
+}
+async function janaLaporanPDF(p, d, imejArr){
+  const logo=await getLogo();
+  const imgs=(await Promise.all((imejArr||[]).map(loadImgMeta))).filter(Boolean);
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const PW=210,PH=297,M=15,TOP=34,FOOT=13,NAVY=[15,41,66],BRASS=[184,134,11],INK=[40,40,40];
+  const W=PW-2*M;
+  let y=TOP;
+  const need=h=>{ if(y+h>PH-FOOT){ doc.addPage(); y=TOP; } };
+
+  // tajuk program
+  doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.setTextColor(...NAVY);
+  doc.text(doc.splitTextToSize(p.nama||'Laporan Program', W), M, y+2); 
+  y+=doc.splitTextToSize(p.nama||'', W).length*6+3;
+
+  // kotak maklumat program (auto)
+  const tempoh = p.mula===p.tamat ? fmtTarikh(p.mula) : fmtTarikh(p.mula)+' – '+fmtTarikh(p.tamat);
+  const info=[
+    ['Sektor', p.sektor],
+    ['Tarikh Dirancang', tempoh],
+    ['Tarikh Sebenar', d.tarikhSebenar?fmtTarikh(d.tarikhSebenar):'—'],
+    ['Tempat', p.tempat||'—'],
+    ['Tetamu Utama', (p.vip&&p.vip.length)?p.vip.join(', '):'—'],
+    ['Kehadiran', d.kehadiran||'—']
+  ];
+  doc.setDrawColor(227,220,201); doc.setFillColor(250,248,243);
+  const infoTop=y; let iy=y+5;
+  doc.setFontSize(9);
+  info.forEach(rw=>{
+    doc.setFont('helvetica','bold'); doc.setTextColor(...NAVY); doc.text(rw[0], M+3, iy);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...INK);
+    const vlines=doc.splitTextToSize(String(rw[1]||'—'), W-45);
+    doc.text(vlines, M+42, iy);
+    iy+=Math.max(5, vlines.length*4.6);
+  });
+  doc.setDrawColor(...BRASS); doc.setLineWidth(0.4); doc.roundedRect(M, infoTop, W, iy-infoTop+1, 2,2);
+  y=iy+7;
+
+  // seksyen naratif
+  function seksyen(tajuk, teks){
+    if(!teks) return;
+    const body=doc.splitTextToSize(teks, W);
+    need(9+body.length*4.6);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...BRASS);
+    doc.text(tajuk.toUpperCase(), M, y+3); 
+    doc.setDrawColor(...BRASS); doc.setLineWidth(0.3); doc.line(M,y+4.5,M+W,y+4.5);
+    y+=8;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...INK);
+    doc.text(body, M, y+2); y+=body.length*4.6+5;
+  }
+  seksyen('Objektif Program', d.objektif);
+  seksyen('Ringkasan Pelaksanaan', d.ringkasan);
+  seksyen('Pencapaian / Impak', d.pencapaian);
+  seksyen('Isu & Cadangan Penambahbaikan', d.isu);
+
+  // galeri gambar (grid 2 lajur)
+  if(imgs.length){
+    need(10);
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...BRASS);
+    doc.text('GAMBAR PROGRAM', M, y+3);
+    doc.setDrawColor(...BRASS); doc.setLineWidth(0.3); doc.line(M,y+4.5,M+W,y+4.5); y+=8;
+    const cols=2, gap=6, cw=(W-gap)/cols, chh=cw*0.66;
+    for(let i=0;i<imgs.length;i++){
+      const col=i%cols;
+      if(col===0) need(chh+gap);
+      const x=M+col*(cw+gap), cy=y;
+      const im=imgs[i];
+      const sc=Math.min(cw/im.w, chh/im.h);
+      const dw=im.w*sc, dh=im.h*sc, ox=x+(cw-dw)/2, oy=cy+(chh-dh)/2;
+      doc.setFillColor(245,245,245); doc.setDrawColor(227,220,201); doc.setLineWidth(0.2);
+      doc.rect(x,cy,cw,chh,'FD');
+      try{ doc.addImage(im.src,'JPEG',ox,oy,dw,dh); }catch(e){ try{ doc.addImage(im.src,'PNG',ox,oy,dw,dh); }catch(e2){} }
+      if(col===cols-1 || i===imgs.length-1) y+=chh+gap;
+    }
+    y+=2;
+  }
+
+  // tandatangan
+  need(30);
+  y+=6;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...INK);
+  doc.text('Disediakan oleh,', M, y); y+=16;
+  doc.setDrawColor(120); doc.setLineWidth(0.2); doc.line(M, y, M+70, y); y+=5;
+  doc.setFont('helvetica','bold'); doc.text((d.disediakanOleh||'').toUpperCase(), M, y); y+=5;
+  doc.setFont('helvetica','normal'); doc.setTextColor(90); doc.text(d.jawatan||'', M, y);
+
+  // kepala & kaki setiap muka surat
+  const genDate=fmtTarikh(new Date().toISOString().slice(0,10));
+  const total=doc.getNumberOfPages();
+  for(let i=1;i<=total;i++){
+    doc.setPage(i);
+    if(logo) doc.addImage(logo,'PNG',M,7,17,17);
+    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...NAVY);
+    doc.text('JABATAN PENDIDIKAN NEGERI KEDAH', M+21, 13);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...BRASS);
+    doc.text('LAPORAN PROGRAM UTAMA', M+21, 19);
+    doc.setDrawColor(...BRASS); doc.setLineWidth(0.6); doc.line(M,27,PW-M,27);
+    doc.setDrawColor(220); doc.setLineWidth(0.2); doc.line(M,PH-9,PW-M,PH-9);
+    doc.setFontSize(7.5); doc.setTextColor(120);
+    doc.text('Dijana '+genDate+'  •  Takwim JPN Kedah', M, PH-5);
+    doc.text('Muka surat '+i+' / '+total, PW-M, PH-5, {align:'right'});
+  }
+  const safe=(p.nama||'Laporan').replace(/[^\w ]/g,'').replace(/\s+/g,'_').slice(0,50);
+  doc.save('Laporan_'+safe+'.pdf');
+  toast('✓ Laporan PDF dijana');
 }
 
 /* =================== KONFLIK (VIP & TEMPAT) — Admin =================== */
@@ -1713,7 +1954,7 @@ function toast(msg,type){
   clearTimeout(toastT); toastT=setTimeout(()=>el.className='toast',3200);
 }
 // tutup overlay bila klik latar
-['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay','importOverlay'].forEach(id=>{
+['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay','importOverlay','laporOverlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) e.target.classList.remove('show'); });
 });
 
