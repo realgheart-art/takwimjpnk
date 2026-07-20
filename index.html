@@ -217,6 +217,23 @@ input,select{font-family:inherit;font-size:.92rem}
 .kf-sec:first-child{margin-top:0}
 .kf-group{margin-bottom:14px}
 .kf-key{font-weight:700;color:var(--navy);font-size:.9rem;margin-bottom:7px}
+.kf-filters{padding:12px 22px 4px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.kf-filter-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kf-flabel{font-size:.76rem;font-weight:700;color:var(--muted);width:48px}
+.kf-tab{font-size:.76rem;font-weight:600;color:var(--muted);padding:5px 11px;border-radius:7px;border:1px solid var(--line);background:#fff;transition:.15s}
+.kf-tab.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.kf-sum{font-size:.82rem;color:var(--ink);margin-bottom:12px;padding:9px 12px;background:var(--paper-2);border-radius:8px}
+.kf-card{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.kf-card.sah{border-color:#bfe3cc;background:#f4fbf6}
+.kf-badge{font-size:.68rem;font-weight:700;padding:3px 9px;border-radius:99px;margin-left:4px}
+.kf-badge.warn{background:#fdeceb;color:var(--danger)}
+.kf-badge.ok{background:#e8f3ec;color:var(--ok)}
+.kf-act{margin-top:9px}
+.kf-sahkan{background:var(--ok);color:#fff;font-weight:700;font-size:.8rem;padding:8px 14px;border-radius:8px}
+.kf-sahkan:hover{filter:brightness(.94)}
+.kf-sahinfo{margin-top:9px;font-size:.78rem;font-weight:600;color:var(--ok);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kf-batal{background:#fff;color:var(--muted);font-weight:600;font-size:.74rem;padding:5px 11px;border-radius:7px;border:1.5px solid var(--line)}
+.kf-batal:hover{border-color:var(--danger);color:var(--danger)}
 .kf-key span{color:var(--danger);font-weight:600;font-size:.8rem}
 .kf-pair{display:flex;align-items:stretch;gap:8px;margin-bottom:7px}
 .kf-vs{display:flex;align-items:center;color:var(--danger);font-weight:700;flex-shrink:0}
@@ -562,6 +579,20 @@ input,select{font-family:inherit;font-size:.92rem}
       </div>
       <button class="x-btn" onclick="closeKonflik()">×</button>
     </div>
+    <div class="kf-filters">
+      <div class="kf-filter-row">
+        <span class="kf-flabel">Jenis:</span>
+        <button class="kf-tab active" id="kfJAll" onclick="setKfJenis('all')">Semua</button>
+        <button class="kf-tab" id="kfJVip" onclick="setKfJenis('vip')">👤 VIP</button>
+        <button class="kf-tab" id="kfJTempat" onclick="setKfJenis('tempat')">📍 Tempat</button>
+      </div>
+      <div class="kf-filter-row">
+        <span class="kf-flabel">Status:</span>
+        <button class="kf-tab active" id="kfSAll" onclick="setKfStatus('all')">Semua</button>
+        <button class="kf-tab" id="kfSPending" onclick="setKfStatus('pending')">Belum Disahkan</button>
+        <button class="kf-tab" id="kfSConfirmed" onclick="setKfStatus('confirmed')">✓ Dibenarkan</button>
+      </div>
+    </div>
     <div class="modal-body" id="konflikBody"></div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="closeKonflik()">Tutup</button>
@@ -844,7 +875,7 @@ input,select{font-family:inherit;font-size:.92rem}
 <script>
 /* =================== KONFIGURASI =================== */
 // >>> GANTIKAN dengan URL Web App GAS anda (berakhir dengan /exec) <<<
-const GAS_URL = "https://script.google.com/macros/s/AKfycbw3qwObffUxO5Vpo4jFi7lODgLBr1sPwgtoNZQULzhLwhL2vZnXqFR6u8iypHJDCsjd/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxYMdsCWK5yK1_b4o9_yzaofE9GhHLEQuXg8MKdZ00bWPqukSSxloZ9FS2IiQlpAXiq/exec";
 
 /* =================== PWA =================== */
 let deferredPrompt = null;
@@ -911,6 +942,9 @@ let UNITWARNA = {};          // "sektor||nama" -> hex
 let colorMode = 'sektor';    // 'sektor' | 'unit'
 let SPERINGKAT=[], SKATEGORI=[], SJENIS=[], STERAS=[]; // senarai dropdown
 let TETAPAN = { kemaskiniPS: true };
+let KONFLIKSAH = new Map();   // kunci -> {oleh,tarikh}
+let konflikCache = [];        // senarai konflik semasa
+let konflikJenis='all', konflikStatus='all';
 let PROGRAM = [];            // [{...}]
 let WARNA = {};              // {namaSektor: hex}
 let aktifSektor = new Set(); // sektor yang ditapis (papar)
@@ -1017,6 +1051,7 @@ async function initApp(){
   SEKTOR=r.sektor; VIP=r.vip||[]; VENUE=r.venue||[]; UNIT=r.unit||[]; PROGRAM=r.program||[];
   SPERINGKAT=r.peringkat||[]; SKATEGORI=r.kategori||[]; SJENIS=r.jenis||[]; STERAS=r.teras||[];
   TETAPAN=r.tetapan||{kemaskiniPS:true};
+  KONFLIKSAH=new Map(); (r.konflikSah||[]).forEach(x=>KONFLIKSAH.set(x.kunci,{oleh:x.oleh,tarikh:x.tarikh}));
   WARNA={}; aktifSektor.clear();
   SEKTOR.forEach(s=>{ WARNA[s.nama]=s.warna; aktifSektor.add(s.nama); });
   rebuildUnitWarna();
@@ -1956,34 +1991,34 @@ function tindih(a,b){
   const a1=a.mula, a2=a.tamat||a.mula, b1=b.mula, b2=b.tamat||b.mula;
   return a1<=b2 && b1<=a2;
 }
-function cariKonflik(){
-  const vipConf={}, venueConf={};
-  const P=PROGRAM;
+function binaKonflik(){
+  const out=[]; const P=PROGRAM;
   for(let i=0;i<P.length;i++){
     for(let j=i+1;j<P.length;j++){
       const a=P[i], b=P[j];
       if(!tindih(a,b)) continue;
-      (a.vip||[]).forEach(v=>{ if((b.vip||[]).indexOf(v)>-1){ (vipConf[v]=vipConf[v]||[]).push([a,b]); }});
+      let A=a, B=b;
+      if(String(a.id)>String(b.id)){ A=b; B=a; }
+      const sig=A.mula+'_'+(A.tamat||A.mula)+'_'+B.mula+'_'+(B.tamat||B.mula);
+      (a.vip||[]).forEach(v=>{
+        if((b.vip||[]).indexOf(v)>-1)
+          out.push({jenis:'vip', entiti:v, a:A, b:B, kunci:'vip|'+v+'|'+A.id+'|'+B.id+'|'+sig});
+      });
       const ta=(a.tempat||'').trim(), tb=(b.tempat||'').trim();
-      if(ta && ta===tb){ (venueConf[ta]=venueConf[ta]||[]).push([a,b]); }
+      if(ta && ta===tb)
+        out.push({jenis:'tempat', entiti:ta, a:A, b:B, kunci:'tempat|'+ta+'|'+A.id+'|'+B.id+'|'+sig});
     }
   }
-  return {vipConf, venueConf};
+  return out;
 }
-function kiraKonflik(){
-  const {vipConf,venueConf}=cariKonflik();
-  let v=0,t=0;
-  Object.values(vipConf).forEach(a=>v+=a.length);
-  Object.values(venueConf).forEach(a=>t+=a.length);
-  return {vip:v, tempat:t};
-}
+function kiraKonflikBelum(){ return binaKonflik().filter(k=>!KONFLIKSAH.has(k.kunci)).length; }
 function updateKonflikCount(){
   const btn=document.getElementById('konflikBtn');
   if(!SESSION || SESSION.peranan!=='Admin'){ btn.style.display='none'; return; }
   btn.style.display='flex';
-  const k=kiraKonflik(); const total=k.vip+k.tempat;
-  btn.textContent = total ? `⚠ Konflik (${total})` : '⚠ Konflik VIP';
-  btn.classList.toggle('ada', total>0);
+  const belum=kiraKonflikBelum();
+  btn.textContent = belum ? `⚠ Konflik (${belum})` : '⚠ Konflik';
+  btn.classList.toggle('ada', belum>0);
 }
 function progChip(p){
   const warna=WARNA[p.sektor]||'#888';
@@ -1994,30 +2029,75 @@ function progChip(p){
       <span class="kf-meta">${esc(p.sektor.replace('Sektor ',''))} · ${tarikh}</span>
     </a>`;
 }
-function seksyenKonflik(conf, jenis){
-  const keys=Object.keys(conf);
-  if(!keys.length) return '';
-  let h=`<div class="kf-sec">${jenis==='vip'?'Pertindihan Tetamu Utama (VIP)':'Pertindihan Tempat'}</div>`;
-  keys.sort().forEach(k=>{
-    h+=`<div class="kf-group"><div class="kf-key">${jenis==='vip'?'👤':'📍'} ${esc(k)} <span>(${conf[k].length})</span></div>`;
-    conf[k].forEach(pair=>{
-      h+=`<div class="kf-pair">${progChip(pair[0])}<span class="kf-vs">⟷</span>${progChip(pair[1])}</div>`;
-    });
-    h+='</div>';
-  });
-  return h;
+function kartuKonflik(i){
+  const k=konflikCache[i];
+  const sah=KONFLIKSAH.get(k.kunci);
+  const ikon=k.jenis==='vip'?'👤':'📍';
+  return '<div class="kf-card'+(sah?' sah':'')+'">'+
+    '<div class="kf-key">'+ikon+' '+esc(k.entiti)+
+      ' <span class="kf-badge '+(sah?'ok':'warn')+'">'+(sah?'Dibenarkan':'Belum disahkan')+'</span></div>'+
+    '<div class="kf-pair">'+progChip(k.a)+'<span class="kf-vs">⟷</span>'+progChip(k.b)+'</div>'+
+    (sah
+      ? '<div class="kf-sahinfo">✓ Dibenarkan'+(sah.oleh?' · '+esc(sah.oleh):'')+(sah.tarikh?' · '+fmtTarikh(sah.tarikh):'')+
+        ' <button class="kf-batal" onclick="batalKonflik('+i+')">Batal Sah</button></div>'
+      : '<div class="kf-act"><button class="kf-sahkan" onclick="sahkanKonflik('+i+')">✓ Sahkan Dibenarkan</button></div>')+
+    '</div>';
+}
+function syncKfTabs(){
+  ['kfJAll','kfJVip','kfJTempat'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById(konflikJenis==='all'?'kfJAll':konflikJenis==='vip'?'kfJVip':'kfJTempat').classList.add('active');
+  ['kfSAll','kfSPending','kfSConfirmed'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  document.getElementById(konflikStatus==='all'?'kfSAll':konflikStatus==='pending'?'kfSPending':'kfSConfirmed').classList.add('active');
+}
+function setKfJenis(v){ konflikJenis=v; syncKfTabs(); renderKonflik(); }
+function setKfStatus(v){ konflikStatus=v; syncKfTabs(); renderKonflik(); }
+function renderKonflik(){
+  konflikCache=binaKonflik();
+  const jumlah=konflikCache.length;
+  const belum=konflikCache.filter(k=>!KONFLIKSAH.has(k.kunci)).length;
+  const sah=jumlah-belum;
+  let idxList=konflikCache.map((k,i)=>i);
+  if(konflikJenis!=='all') idxList=idxList.filter(i=>konflikCache[i].jenis===konflikJenis);
+  if(konflikStatus==='pending') idxList=idxList.filter(i=>!KONFLIKSAH.has(konflikCache[i].kunci));
+  else if(konflikStatus==='confirmed') idxList=idxList.filter(i=>KONFLIKSAH.has(konflikCache[i].kunci));
+
+  const body=document.getElementById('konflikBody');
+  let h='<div class="kf-sum">Jumlah: <b>'+jumlah+'</b> · Belum disahkan: <b style="color:var(--danger)">'+belum+
+        '</b> · Dibenarkan: <b style="color:var(--ok)">'+sah+'</b></div>';
+  if(!jumlah){
+    h+='<div class="kf-kosong">✓ Tiada pertindihan VIP atau tempat dikesan.<br><span>Semua program bebas konflik.</span></div>';
+  } else if(!idxList.length){
+    h+='<p class="chart-empty" style="padding:8px 0">Tiada konflik dalam penapis ini.</p>';
+  } else {
+    idxList.forEach(i=>{ h+=kartuKonflik(i); });
+  }
+  body.innerHTML=h;
 }
 function openKonflik(){
-  const {vipConf,venueConf}=cariKonflik();
-  const body=document.getElementById('konflikBody');
-  const vipH=seksyenKonflik(vipConf,'vip');
-  const venH=seksyenKonflik(venueConf,'tempat');
-  body.innerHTML = (vipH||venH)
-    ? (vipH+venH)
-    : '<div class="kf-kosong">✓ Tiada pertindihan VIP atau tempat dikesan.<br><span>Semua program bebas konflik.</span></div>';
+  konflikJenis='all'; konflikStatus='all'; syncKfTabs(); renderKonflik();
   document.getElementById('konflikOverlay').classList.add('show');
 }
 function closeKonflik(){ document.getElementById('konflikOverlay').classList.remove('show'); }
+async function sahkanKonflik(i){
+  const k=konflikCache[i]; if(!k) return;
+  try{
+    const r=await api('sahkanKonflik',{kunci:k.kunci});
+    if(!r.ok){ toast(r.error||'Gagal','err'); return; }
+    KONFLIKSAH.set(k.kunci,{oleh:r.oleh||(SESSION&&SESSION.nama)||'Admin', tarikh:r.tarikh});
+    renderKonflik(); updateKonflikCount();
+    toast('✓ Konflik disahkan dibenarkan');
+  }catch(e){ toast('Ralat sambungan','err'); }
+}
+async function batalKonflik(i){
+  const k=konflikCache[i]; if(!k) return;
+  try{
+    const r=await api('batalKonflik',{kunci:k.kunci});
+    if(!r.ok){ toast(r.error||'Gagal','err'); return; }
+    KONFLIKSAH.delete(k.kunci);
+    renderKonflik(); updateKonflikCount();
+    toast('Pengesahan dibatalkan');
+  }catch(e){ toast('Ralat sambungan','err'); }
+}
 function openProgById(id){ const p=getProg(id); if(p){ closeKonflik(); closeLaporanList(); openDetail(p); } }
 
 /* =================== SENARAI LAPORAN =================== */
