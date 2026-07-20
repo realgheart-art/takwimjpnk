@@ -234,6 +234,16 @@ input,select{font-family:inherit;font-size:.92rem}
 .kf-sahinfo{margin-top:9px;font-size:.78rem;font-weight:600;color:var(--ok);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .kf-batal{background:#fff;color:var(--muted);font-weight:600;font-size:.74rem;padding:5px 11px;border-radius:7px;border:1.5px solid var(--line)}
 .kf-batal:hover{border-color:var(--danger);color:var(--danger)}
+.kp-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.kp-head{font-weight:700;color:var(--navy);font-size:.86rem;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.kp-actions{display:flex;gap:4px}
+.kp-actions button{font-size:.68rem;font-weight:600;color:var(--muted);padding:3px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.kp-actions button:hover{border-color:var(--brass);color:var(--navy)}
+.kp-list{max-height:320px;overflow-y:auto;border:1.5px solid var(--line);border-radius:10px;padding:6px}
+.kp-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:.82rem}
+.kp-item:hover{background:var(--paper-2)}
+.kp-item input{width:15px;height:15px;accent-color:var(--brass);flex-shrink:0}
+@media(max-width:560px){ .kp-cols{grid-template-columns:1fr} }
 .kf-key span{color:var(--danger);font-weight:600;font-size:.8rem}
 .kf-pair{display:flex;align-items:stretch;gap:8px;margin-bottom:7px}
 .kf-vs{display:flex;align-items:center;color:var(--danger);font-weight:700;flex-shrink:0}
@@ -596,6 +606,40 @@ input,select{font-family:inherit;font-size:.92rem}
     <div class="modal-body" id="konflikBody"></div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="closeKonflik()">Tutup</button>
+      <button class="btn-save" onclick="openKpPicker()">⚙ Item Dipantau</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: ITEM DIPANTAU KONFLIK ============ -->
+<div class="overlay" id="kpOverlay">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">Tetapan Konflik</div>
+        <h3>Item Dipantau</h3>
+      </div>
+      <button class="x-btn" onclick="closeKpPicker()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:14px;line-height:1.5">
+        Tandakan hanya VIP &amp; tempat yang perlu dipantau untuk konflik. Item tak bertanda diabaikan.
+        <b>Jika semua dikosongkan, sistem pantau semua.</b>
+      </p>
+      <div class="kp-cols">
+        <div class="kp-col">
+          <div class="kp-head">👤 VIP <span class="kp-actions"><button onclick="kpSetAll('vip',true)">Semua</button><button onclick="kpSetAll('vip',false)">Kosong</button></span></div>
+          <div class="kp-list" id="kpVipList"></div>
+        </div>
+        <div class="kp-col">
+          <div class="kp-head">📍 Tempat <span class="kp-actions"><button onclick="kpSetAll('tempat',true)">Semua</button><button onclick="kpSetAll('tempat',false)">Kosong</button></span></div>
+          <div class="kp-list" id="kpTempatList"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeKpPicker()">Batal</button>
+      <button class="btn-save" id="kpSaveBtn" onclick="saveKpPicker()">Simpan</button>
     </div>
   </div>
 </div>
@@ -875,7 +919,7 @@ input,select{font-family:inherit;font-size:.92rem}
 <script>
 /* =================== KONFIGURASI =================== */
 // >>> GANTIKAN dengan URL Web App GAS anda (berakhir dengan /exec) <<<
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxYMdsCWK5yK1_b4o9_yzaofE9GhHLEQuXg8MKdZ00bWPqukSSxloZ9FS2IiQlpAXiq/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz5BpEjNNwt2sFC6vPO4vtStXjb7ao0ul0pM6ErwYo9AFgiHHDreLU3RNPgqfpFFK1x/exec";
 
 /* =================== PWA =================== */
 let deferredPrompt = null;
@@ -943,6 +987,8 @@ let colorMode = 'sektor';    // 'sektor' | 'unit'
 let SPERINGKAT=[], SKATEGORI=[], SJENIS=[], STERAS=[]; // senarai dropdown
 let TETAPAN = { kemaskiniPS: true };
 let KONFLIKSAH = new Map();   // kunci -> {oleh,tarikh}
+let KPVIP = new Set();        // VIP dipantau (kosong = semua)
+let KPTEMPAT = new Set();     // Tempat dipantau (kosong = semua)
 let konflikCache = [];        // senarai konflik semasa
 let konflikJenis='all', konflikStatus='all';
 let PROGRAM = [];            // [{...}]
@@ -1052,6 +1098,8 @@ async function initApp(){
   SPERINGKAT=r.peringkat||[]; SKATEGORI=r.kategori||[]; SJENIS=r.jenis||[]; STERAS=r.teras||[];
   TETAPAN=r.tetapan||{kemaskiniPS:true};
   KONFLIKSAH=new Map(); (r.konflikSah||[]).forEach(x=>KONFLIKSAH.set(x.kunci,{oleh:x.oleh,tarikh:x.tarikh}));
+  KPVIP=new Set((r.konflikPantau&&r.konflikPantau.vip)||[]);
+  KPTEMPAT=new Set((r.konflikPantau&&r.konflikPantau.tempat)||[]);
   WARNA={}; aktifSektor.clear();
   SEKTOR.forEach(s=>{ WARNA[s.nama]=s.warna; aktifSektor.add(s.nama); });
   rebuildUnitWarna();
@@ -1993,6 +2041,9 @@ function tindih(a,b){
 }
 function binaKonflik(){
   const out=[]; const P=PROGRAM;
+  const kpAktif = (KPVIP.size>0 || KPTEMPAT.size>0);
+  const pantauVip = v => !kpAktif || KPVIP.has(v);
+  const pantauTempat = t => !kpAktif || KPTEMPAT.has(t);
   for(let i=0;i<P.length;i++){
     for(let j=i+1;j<P.length;j++){
       const a=P[i], b=P[j];
@@ -2001,11 +2052,11 @@ function binaKonflik(){
       if(String(a.id)>String(b.id)){ A=b; B=a; }
       const sig=A.mula+'_'+(A.tamat||A.mula)+'_'+B.mula+'_'+(B.tamat||B.mula);
       (a.vip||[]).forEach(v=>{
-        if((b.vip||[]).indexOf(v)>-1)
+        if((b.vip||[]).indexOf(v)>-1 && pantauVip(v))
           out.push({jenis:'vip', entiti:v, a:A, b:B, kunci:'vip|'+v+'|'+A.id+'|'+B.id+'|'+sig});
       });
       const ta=(a.tempat||'').trim(), tb=(b.tempat||'').trim();
-      if(ta && ta===tb)
+      if(ta && ta===tb && pantauTempat(ta))
         out.push({jenis:'tempat', entiti:ta, a:A, b:B, kunci:'tempat|'+ta+'|'+A.id+'|'+B.id+'|'+sig});
     }
   }
@@ -2099,6 +2150,52 @@ async function batalKonflik(i){
   }catch(e){ toast('Ralat sambungan','err'); }
 }
 function openProgById(id){ const p=getProg(id); if(p){ closeKonflik(); closeLaporanList(); openDetail(p); } }
+
+/* =================== ITEM DIPANTAU KONFLIK =================== */
+let kpDraftVip=new Set(), kpDraftTempat=new Set();
+function openKpPicker(){
+  const kpAktif=KPVIP.size>0||KPTEMPAT.size>0;
+  const vipSet=new Set(VIP); PROGRAM.forEach(p=>(p.vip||[]).forEach(v=>{ if(v) vipSet.add(v); }));
+  const tmpSet=new Set(VENUE); PROGRAM.forEach(p=>{ const t=(p.tempat||'').trim(); if(t) tmpSet.add(t); });
+  const vipOpts=[...vipSet].sort((a,b)=>a.localeCompare(b));
+  const tmpOpts=[...tmpSet].sort((a,b)=>a.localeCompare(b));
+  kpDraftVip=new Set(kpAktif?[...KPVIP]:vipOpts);
+  kpDraftTempat=new Set(kpAktif?[...KPTEMPAT]:tmpOpts);
+  drawKpList('kpVipList', vipOpts, kpDraftVip, 'vip');
+  drawKpList('kpTempatList', tmpOpts, kpDraftTempat, 'tempat');
+  document.getElementById('kpOverlay').classList.add('show');
+}
+function closeKpPicker(){ document.getElementById('kpOverlay').classList.remove('show'); }
+function drawKpList(elId, opts, draftSet, jenis){
+  const box=document.getElementById(elId);
+  if(!opts.length){ box.innerHTML='<p class="chart-empty" style="padding:4px 0">Tiada item.</p>'; return; }
+  box.innerHTML=opts.map(o=>
+    '<label class="kp-item"><input type="checkbox" '+(draftSet.has(o)?'checked':'')+
+    ' data-v="'+esc(o)+'" onchange="kpToggle(\''+jenis+'\',this.checked,this.getAttribute(\'data-v\'))">'+
+    '<span>'+esc(o)+'</span></label>').join('');
+}
+function kpToggle(jenis,checked,val){
+  const set=jenis==='vip'?kpDraftVip:kpDraftTempat;
+  if(checked) set.add(val); else set.delete(val);
+}
+function kpSetAll(jenis,on){
+  const box=document.getElementById(jenis==='vip'?'kpVipList':'kpTempatList');
+  const set=jenis==='vip'?kpDraftVip:kpDraftTempat;
+  set.clear();
+  box.querySelectorAll('input[type=checkbox]').forEach(cb=>{ cb.checked=on; if(on) set.add(cb.getAttribute('data-v')); });
+}
+async function saveKpPicker(){
+  const vip=[...kpDraftVip], tempat=[...kpDraftTempat];
+  const btn=document.getElementById('kpSaveBtn'); btn.disabled=true; btn.textContent='Menyimpan…';
+  try{
+    const r=await api('saveKonflikPantau',{vip, tempat});
+    if(!r.ok){ toast(r.error||'Gagal simpan','err'); return; }
+    KPVIP=new Set(vip); KPTEMPAT=new Set(tempat);
+    closeKpPicker(); renderKonflik(); updateKonflikCount();
+    toast('✓ Item dipantau dikemas kini');
+  }catch(e){ toast('Ralat sambungan','err'); }
+  finally{ btn.disabled=false; btn.textContent='Simpan'; }
+}
 
 /* =================== SENARAI LAPORAN =================== */
 let laporFilter='all';
@@ -2613,7 +2710,7 @@ function toast(msg,type){
   clearTimeout(toastT); toastT=setTimeout(()=>el.className='toast',3200);
 }
 // tutup overlay bila klik latar
-['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay','importOverlay','laporOverlay','arkibOverlay','laporListOverlay','previewOverlay','unitOverlay','tetapanOverlay'].forEach(id=>{
+['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay','importOverlay','laporOverlay','arkibOverlay','laporListOverlay','previewOverlay','unitOverlay','tetapanOverlay','kpOverlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) e.target.classList.remove('show'); });
 });
 
