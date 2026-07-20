@@ -297,6 +297,17 @@ input,select{font-family:inherit;font-size:.92rem}
 .btn-unit{background:#fff;color:var(--navy);font-weight:700;padding:10px 16px;border-radius:10px;font-size:.88rem;
   border:1.5px solid var(--brass);display:flex;align-items:center;gap:7px;transition:.15s}
 .btn-unit:hover{background:var(--brass);color:#fff}
+.tet-row{display:flex;align-items:flex-start;gap:14px;justify-content:space-between}
+.tet-info{flex:1}
+.tet-tajuk{font-weight:700;color:var(--navy);font-size:.9rem;margin-bottom:4px}
+.tet-nota{font-size:.78rem;color:var(--muted);line-height:1.5}
+.tet-status{margin-top:16px;font-size:.82rem;font-weight:700;padding:10px 12px;background:var(--paper-2);border-radius:8px}
+.switch{position:relative;display:inline-block;width:48px;height:27px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:27px;transition:.2s}
+.slider:before{content:"";position:absolute;height:21px;width:21px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked+.slider{background:var(--ok)}
+.switch input:checked+.slider:before{transform:translateX(21px)}
 .unit-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .unit-row input[type=color]{width:38px;height:38px;border:1.5px solid var(--line);border-radius:8px;padding:2px;background:#fff;cursor:pointer;flex-shrink:0}
 .unit-nm{flex:1;padding:9px 11px;border:1.5px solid var(--line);border-radius:8px;font-size:.88rem}
@@ -394,6 +405,7 @@ input,select{font-family:inherit;font-size:.92rem}
           <button class="btn-lapor-list" id="laporListBtn" onclick="openLaporanList()" style="display:none">📋 Laporan</button>
           <button class="btn-arkib" id="arkibBtn" onclick="doArkibReset()" style="display:none">🗄 Arkib &amp; Reset</button>
           <button class="btn-unit" id="unitBtn" onclick="openUnitPanel()" style="display:none">🎨 Urus Unit</button>
+          <button class="btn-unit" id="tetapanBtn" onclick="openTetapan()" style="display:none">⚙ Tetapan</button>
           <button class="btn-pdf" onclick="openExport()">⤓ Export PDF</button>
           <button class="btn-import" id="importBtn" onclick="openImport()" style="display:none">⤒ Import</button>
           <button class="btn-add" id="addBtn" onclick="openForm()" style="display:none">＋ Tambah Program</button>
@@ -422,7 +434,7 @@ input,select{font-family:inherit;font-size:.92rem}
           <div class="chart-card"><h3>Program Mengikut Kategori</h3><div id="chartKategori"></div></div>
         </div>
         <div class="chart-grid">
-          <div class="chart-card"><h3>Program Mengikut Teras Utama KPM</h3><div id="chartTeras"></div></div>
+          <div class="chart-card"><h3>Program Mengikut Teras Utama RPM</h3><div id="chartTeras"></div></div>
           <div class="chart-card"><h3>Program Mengikut Peringkat</h3><div id="chartPeringkat"></div></div>
         </div>
         <div class="chart-card"><h3>Status Laporan Program Utama</h3><div id="chartLaporan"></div></div>
@@ -460,12 +472,24 @@ input,select{font-family:inherit;font-size:.92rem}
         <select id="fSektor" onchange="onSektorChange()"></select>
       </div>
       <div class="row2">
-        <div class="grp"><label>Peringkat</label><input type="text" id="fPeringkat" placeholder="cth: Negeri"></div>
-        <div class="grp"><label>Kategori</label><input type="text" id="fKategori" placeholder="cth: Pemantauan"></div>
+        <div class="grp"><label>Peringkat</label>
+          <select id="fPeringkatSel" onchange="dropLainToggle('Peringkat')"></select>
+          <input type="text" id="fPeringkatLain" placeholder="Taip sendiri…" style="display:none;margin-top:8px">
+        </div>
+        <div class="grp"><label>Kategori</label>
+          <select id="fKategoriSel" onchange="dropLainToggle('Kategori')"></select>
+          <input type="text" id="fKategoriLain" placeholder="Taip sendiri…" style="display:none;margin-top:8px">
+        </div>
       </div>
       <div class="row2">
-        <div class="grp"><label>Jenis Program</label><input type="text" id="fJenis" placeholder="cth: Kokurikulum"></div>
-        <div class="grp"><label>Teras Utama KPM</label><input type="text" id="fTeras" placeholder="cth: Teras 2"></div>
+        <div class="grp"><label>Jenis Program</label>
+          <select id="fJenisSel" onchange="dropLainToggle('Jenis')"></select>
+          <input type="text" id="fJenisLain" placeholder="Taip sendiri…" style="display:none;margin-top:8px">
+        </div>
+        <div class="grp"><label>Teras Utama RPM</label>
+          <select id="fTerasSel" onchange="dropLainToggle('Teras')"></select>
+          <input type="text" id="fTerasLain" placeholder="Taip sendiri…" style="display:none;margin-top:8px">
+        </div>
       </div>
 
       <div class="form-sec">Tarikh</div>
@@ -689,6 +713,35 @@ input,select{font-family:inherit;font-size:.92rem}
   </div>
 </div>
 
+<!-- ============ MODAL: TETAPAN (Admin) ============ -->
+<div class="overlay" id="tetapanOverlay">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">Panel Admin</div>
+        <h3>Tetapan Sistem</h3>
+      </div>
+      <button class="x-btn" onclick="closeTetapan()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="tet-row">
+        <div class="tet-info">
+          <div class="tet-tajuk">Kemaskini oleh Pengguna Sektor</div>
+          <div class="tet-nota">Bila DITUTUP, Pengguna Sektor tidak boleh tambah/edit/padam/import program. Buka hanya bila ada keperluan kemaskini. Admin sentiasa boleh mengedit.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="tetKemaskini" onchange="simpanTetapan()">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div id="tetStatus" class="tet-status"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeTetapan()">Tutup</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL: URUS UNIT ============ -->
 <div class="overlay" id="unitOverlay">
   <div class="modal" style="max-width:560px">
@@ -791,7 +844,7 @@ input,select{font-family:inherit;font-size:.92rem}
 <script>
 /* =================== KONFIGURASI =================== */
 // >>> GANTIKAN dengan URL Web App GAS anda (berakhir dengan /exec) <<<
-const GAS_URL = "https://script.google.com/macros/s/AKfycbyaEfXj5RDNViQXl50hUMrwyhkWKk4Y7drm6Hwy0JGZLs6pE6H0Zhq8_cnVJuozlABx/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbw3qwObffUxO5Vpo4jFi7lODgLBr1sPwgtoNZQULzhLwhL2vZnXqFR6u8iypHJDCsjd/exec";
 
 /* =================== PWA =================== */
 let deferredPrompt = null;
@@ -856,6 +909,8 @@ let VENUE = [];              // [string]
 let UNIT = [];               // [{sektor,nama,warna}]
 let UNITWARNA = {};          // "sektor||nama" -> hex
 let colorMode = 'sektor';    // 'sektor' | 'unit'
+let SPERINGKAT=[], SKATEGORI=[], SJENIS=[], STERAS=[]; // senarai dropdown
+let TETAPAN = { kemaskiniPS: true };
 let PROGRAM = [];            // [{...}]
 let WARNA = {};              // {namaSektor: hex}
 let aktifSektor = new Set(); // sektor yang ditapis (papar)
@@ -917,11 +972,13 @@ function renderAuthUI(){
   const logged=!!SESSION;
   document.getElementById('topLoginBtn').style.display = logged ? 'none' : 'inline-block';
   document.getElementById('userState').style.display   = logged ? 'flex' : 'none';
-  document.getElementById('addBtn').style.display       = logged ? 'flex' : 'none';
-  document.getElementById('importBtn').style.display    = logged ? 'flex' : 'none';
+  const bolehTulis = logged && (SESSION.peranan==='Admin' || TETAPAN.kemaskiniPS);
+  document.getElementById('addBtn').style.display       = bolehTulis ? 'flex' : 'none';
+  document.getElementById('importBtn').style.display    = bolehTulis ? 'flex' : 'none';
   document.getElementById('laporListBtn').style.display = logged ? 'flex' : 'none';
   document.getElementById('arkibBtn').style.display     = (logged && SESSION.peranan==='Admin') ? 'flex' : 'none';
   document.getElementById('unitBtn').style.display      = (logged && SESSION.peranan==='Admin') ? 'flex' : 'none';
+  document.getElementById('tetapanBtn').style.display   = (logged && SESSION.peranan==='Admin') ? 'flex' : 'none';
   if(logged){
     document.getElementById('uName').textContent = SESSION.nama;
     document.getElementById('uRole').textContent = SESSION.peranan +
@@ -958,6 +1015,8 @@ async function initApp(){
   }
 
   SEKTOR=r.sektor; VIP=r.vip||[]; VENUE=r.venue||[]; UNIT=r.unit||[]; PROGRAM=r.program||[];
+  SPERINGKAT=r.peringkat||[]; SKATEGORI=r.kategori||[]; SJENIS=r.jenis||[]; STERAS=r.teras||[];
+  TETAPAN=r.tetapan||{kemaskiniPS:true};
   WARNA={}; aktifSektor.clear();
   SEKTOR.forEach(s=>{ WARNA[s.nama]=s.warna; aktifSektor.add(s.nama); });
   rebuildUnitWarna();
@@ -1217,6 +1276,27 @@ function isiSektorDropdown(){
   senarai.forEach(s=>{ const o=document.createElement('option'); o.value=s.nama; o.textContent=s.nama; sel.appendChild(o); });
   sel.disabled = (SESSION && SESSION.peranan==='Pengguna Sektor');
 }
+function isiDropList(field, senarai, val){
+  const sel=document.getElementById('f'+field+'Sel'); sel.innerHTML='';
+  ['',...senarai,'__lain__'].forEach(v=>{
+    const o=document.createElement('option');
+    if(v===''){o.value='';o.textContent='— Pilih —';}
+    else if(v==='__lain__'){o.value='__lain__';o.textContent='Lain-lain (taip sendiri)…';}
+    else{o.value=v;o.textContent=v;}
+    sel.appendChild(o);
+  });
+  const lain=document.getElementById('f'+field+'Lain');
+  if(val && senarai.indexOf(val)===-1){ sel.value='__lain__'; lain.style.display='block'; lain.value=val; }
+  else{ sel.value=val||''; lain.style.display='none'; lain.value=''; }
+}
+function dropLainToggle(field){
+  document.getElementById('f'+field+'Lain').style.display =
+    document.getElementById('f'+field+'Sel').value==='__lain__' ? 'block':'none';
+}
+function bacaDrop(field){
+  const sel=document.getElementById('f'+field+'Sel').value;
+  return sel==='__lain__' ? document.getElementById('f'+field+'Lain').value.trim() : sel;
+}
 function isiVenueDropdown(val){
   const sel=document.getElementById('fVenueSel'); sel.innerHTML='';
   ['',...VENUE,'__lain__'].forEach(v=>{
@@ -1257,6 +1337,37 @@ function onSektorChange(){ isiUnitDropdown(document.getElementById('fSektor').va
 function bacaUnit(){
   const sel=document.getElementById('fUnitSel').value;
   return sel==='__lain__' ? document.getElementById('fUnitLain').value.trim() : sel;
+}
+
+/* =================== TETAPAN (Admin) =================== */
+function bolehEdit(sektor){
+  if(!SESSION) return false;
+  if(SESSION.peranan==='Admin') return true;
+  if(SESSION.peranan==='Pengguna Sektor') return TETAPAN.kemaskiniPS && SESSION.sektor===sektor;
+  return false;
+}
+function openTetapan(){
+  document.getElementById('tetKemaskini').checked = !!TETAPAN.kemaskiniPS;
+  updateTetStatus();
+  document.getElementById('tetapanOverlay').classList.add('show');
+}
+function closeTetapan(){ document.getElementById('tetapanOverlay').classList.remove('show'); }
+function updateTetStatus(){
+  const on=document.getElementById('tetKemaskini').checked;
+  const el=document.getElementById('tetStatus');
+  el.textContent = on ? '● Kemaskini Pengguna Sektor: DIBUKA' : '○ Kemaskini Pengguna Sektor: DITUTUP';
+  el.style.color = on ? 'var(--ok)' : 'var(--danger)';
+}
+async function simpanTetapan(){
+  const on=document.getElementById('tetKemaskini').checked;
+  updateTetStatus();
+  try{
+    const r=await api('saveTetapan',{kemaskiniPS:on});
+    if(!r.ok){ toast(r.error||'Gagal simpan tetapan','err'); document.getElementById('tetKemaskini').checked=!on; updateTetStatus(); return; }
+    TETAPAN=r.tetapan||{kemaskiniPS:on};
+    renderAuthUI();
+    toast(on ? '✓ Kemaskini Pengguna Sektor DIBUKA' : '✓ Kemaskini Pengguna Sektor DITUTUP');
+  }catch(e){ toast('Ralat sambungan','err'); document.getElementById('tetKemaskini').checked=!on; updateTetStatus(); }
 }
 
 /* =================== URUS UNIT (Admin) =================== */
@@ -1360,12 +1471,15 @@ function openForm(prog){
   if(prog){ // edit
     document.getElementById('formEyebrow').textContent='Kemaskini Entri';
     document.getElementById('formTitle').textContent='Edit Program';
-    set('fId',prog.id); set('fNama',prog.nama); set('fPeringkat',prog.peringkat);
-    set('fKategori',prog.kategori); set('fJenis',prog.jenisProgram); set('fTeras',prog.terasKPM);
+    set('fId',prog.id); set('fNama',prog.nama);
     set('fMula',prog.mula); set('fTamat',prog.tamat);
     set('fSubUnit',prog.subUnit); set('fPegawaiMeja',prog.pegawaiMeja);
     set('fNamaPegawai',prog.namaPegawai); set('fSasaran',prog.sasaran);
     set('fBilSasaran',prog.bilSasaran); set('fPeruntukan',prog.peruntukan);
+    isiDropList('Peringkat',SPERINGKAT,prog.peringkat||'');
+    isiDropList('Kategori',SKATEGORI,prog.kategori||'');
+    isiDropList('Jenis',SJENIS,prog.jenisProgram||'');
+    isiDropList('Teras',STERAS,prog.terasKPM||'');
     document.getElementById('fSektor').value=prog.sektor;
     isiUnitDropdown(prog.sektor, prog.unit||'');
     document.getElementById('fUtama').checked = !!prog.utama;
@@ -1375,8 +1489,10 @@ function openForm(prog){
   }else{ // baharu
     document.getElementById('formEyebrow').textContent='Entri Baharu';
     document.getElementById('formTitle').textContent='Tambah Program';
-    ['fId','fNama','fPeringkat','fKategori','fJenis','fTeras','fMula','fTamat','fSubUnit',
+    ['fId','fNama','fMula','fTamat','fSubUnit',
      'fPegawaiMeja','fNamaPegawai','fSasaran','fBilSasaran','fPeruntukan'].forEach(id=>set(id,''));
+    isiDropList('Peringkat',SPERINGKAT,''); isiDropList('Kategori',SKATEGORI,'');
+    isiDropList('Jenis',SJENIS,''); isiDropList('Teras',STERAS,'');
     document.getElementById('fUtama').checked=false;
     if(SESSION && SESSION.peranan==='Pengguna Sektor') document.getElementById('fSektor').value=SESSION.sektor;
     isiUnitDropdown(document.getElementById('fSektor').value, '');
@@ -1400,8 +1516,8 @@ function bacaBorang(){
     nama:g('fNama'),
     mula:document.getElementById('fMula').value,
     tamat:document.getElementById('fTamat').value || document.getElementById('fMula').value,
-    peringkat:g('fPeringkat'), kategori:g('fKategori'),
-    jenisProgram:g('fJenis'), terasKPM:g('fTeras'),
+    peringkat:bacaDrop('Peringkat'), kategori:bacaDrop('Kategori'),
+    jenisProgram:bacaDrop('Jenis'), terasKPM:bacaDrop('Teras'),
     pegawaiMeja:g('fPegawaiMeja'), unit:bacaUnit(), subUnit:g('fSubUnit'),
     vip, sasaran:g('fSasaran'), bilSasaran:g('fBilSasaran'),
     peruntukan:g('fPeruntukan'), namaPegawai:g('fNamaPegawai'),
@@ -1462,15 +1578,16 @@ function openDetail(p){
     (p.utama?'<span class="utama-badge">★ Program Utama JPN</span><br>':'') + esc(p.nama);
   const tempoh = p.mula===p.tamat ? fmtTarikh(p.mula) : fmtTarikh(p.mula)+' – '+fmtTarikh(p.tamat);
   const baris=(k,v)=> v ? `<div class="detail-row"><span class="k">${k}</span><span class="v">${v}</span></div>` : '';
-  const boleh = SESSION && (SESSION.peranan==='Admin' ||
-                (SESSION.peranan==='Pengguna Sektor' && SESSION.sektor===p.sektor));
+  const bolehProg = bolehEdit(p.sektor); // tertakluk kunci kemaskini
+  const bolehLap = SESSION && (SESSION.peranan==='Admin' ||
+                (SESSION.peranan==='Pengguna Sektor' && SESSION.sektor===p.sektor)); // laporan tidak dikunci
   let html='';
   html+=baris('Sektor', `<span class="sektor-tag" style="background:${WARNA[p.sektor]||'#888'}">${esc(p.sektor)}</span>`);
   html+=baris('Tarikh', tempoh);
   html+=baris('Peringkat', esc(p.peringkat));
   html+=baris('Kategori', esc(p.kategori));
   html+=baris('Jenis Program', esc(p.jenisProgram));
-  html+=baris('Teras Utama KPM', esc(p.terasKPM));
+  html+=baris('Teras Utama RPM', esc(p.terasKPM));
   html+=baris('Unit', p.unit ? ('<span class="sektor-tag" style="background:'+(UNITWARNA[p.sektor+'||'+String(p.unit).trim()]||WARNA[p.sektor]||'#888')+'">'+esc(p.unit)+'</span>') : '');
   html+=baris('Sub Unit', esc(p.subUnit));
   html+=baris('Pegawai Meja', esc(p.pegawaiMeja));
@@ -1483,12 +1600,12 @@ function openDetail(p){
 
   // Bahagian Laporan — hanya Program Utama + pengguna log masuk
   if(p.utama && SESSION){
-    html+=laporanBlock(p, boleh);
+    html+=laporanBlock(p, bolehLap);
   }
   document.getElementById('detailBody').innerHTML = html || '<p style="color:var(--muted)">Tiada butiran.</p>';
 
   const foot=document.getElementById('detailFoot');
-  foot.innerHTML = boleh
+  foot.innerHTML = bolehProg
     ? `<button class="btn-cancel" onclick="closeDetail()">Tutup</button>
        <button class="btn-save" onclick="closeDetail();openForm(getProg('${p.id}'))">Edit Program</button>`
     : `<button class="btn-cancel" onclick="closeDetail()">Tutup</button>`;
@@ -2416,7 +2533,7 @@ function toast(msg,type){
   clearTimeout(toastT); toastT=setTimeout(()=>el.className='toast',3200);
 }
 // tutup overlay bila klik latar
-['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay','importOverlay','laporOverlay','arkibOverlay','laporListOverlay','previewOverlay','unitOverlay'].forEach(id=>{
+['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay','importOverlay','laporOverlay','arkibOverlay','laporListOverlay','previewOverlay','unitOverlay','tetapanOverlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) e.target.classList.remove('show'); });
 });
 
