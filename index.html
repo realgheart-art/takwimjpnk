@@ -1162,7 +1162,7 @@ function setAllSektor(on){
 function buildCalendar(){
   document.getElementById('calWrap').innerHTML='<div id="calendar"></div>';
   calendar=new FullCalendar.Calendar(document.getElementById('calendar'),{
-    locale:'ms', height:'auto', firstDay:1,
+    locale:'ms', height:'auto', firstDay:0,
     headerToolbar:{left:'prev,next today',center:'title',right:'dayGridMonth,timeGridWeek,listMonth'},
     buttonText:{today:'Hari Ini',month:'Bulan',week:'Minggu',list:'Senarai'},
     events: buildEvents(),
@@ -2588,12 +2588,12 @@ async function generatePDF(){
     }
 
     // --- Setiap bulan ---
-    const wd=['Isn','Sel','Rab','Kha','Jum','Sab','Ahd'];
+    const wd=['Ahd','Isn','Sel','Rab','Kha','Jum','Sab'];
     months.forEach(key=>{
       const [yr,mo]=key.split('-').map(Number); const month=mo-1;
       const progs=byMonth[key];
       const days=new Date(yr,month+1,0).getDate();
-      const offset=(new Date(yr,month,1).getDay()+6)%7; // Isnin=0
+      const offset=new Date(yr,month,1).getDay(); // Ahad=0
       const rows=Math.ceil((offset+days)/7);
       const cw=(PW-2*M)/7, ch=9.5;
       const gridH=5/*weekday*/+rows*ch;
