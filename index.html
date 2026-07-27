@@ -541,8 +541,9 @@ input,select{font-family:inherit;font-size:.92rem}
 
       <div class="form-sec">Tetamu & Tempat</div>
       <div class="grp">
-        <label>Tetamu Utama / VIP (boleh pilih lebih dari satu)</label>
-        <div class="vip-box" id="fVip"></div>
+        <label>Tetamu Utama / VIP</label>
+        <select id="fVipSel" onchange="onVipChange()"></select>
+        <input type="text" id="fVipLain" placeholder="Taip nama VIP…" style="display:none;margin-top:8px">
       </div>
       <div class="grp">
         <label>Tempat</label>
@@ -1149,6 +1150,7 @@ function buildSektorFilter(){
 function toggleSektor(cb){
   const n=cb.getAttribute('data-s');
   cb.checked ? aktifSektor.add(n) : aktifSektor.delete(n);
+  fillUnitFilter();
   applyFilters();
 }
 function toggleUtamaOnly(cb){ utamaOnly=cb.checked; applyFilters(); }
@@ -1162,6 +1164,7 @@ function setAllSektor(on){
   document.querySelectorAll('#sektorFilter input').forEach(cb=>{ cb.checked=on; });
   aktifSektor.clear();
   if(on) SEKTOR.forEach(s=>aktifSektor.add(s.nama));
+  fillUnitFilter();
   applyFilters();
 }
 
@@ -1265,13 +1268,16 @@ function buildFilterDropdowns(){
   fillUnitFilter();
 }
 function fillUnitFilter(){
-  let src = PROGRAM;
-  if(SESSION && SESSION.peranan==='Pengguna Sektor') src = PROGRAM.filter(p=>p.sektor===SESSION.sektor);
-  const vals=[...new Set(src.map(p=>(p.unit||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  // unit ikut sektor yang sedang aktif dalam penapis sektor
+  const relevan=new Set();
+  UNIT.forEach(u=>{ if(u.nama && aktifSektor.has(u.sektor)) relevan.add(String(u.nama).trim()); });
+  PROGRAM.forEach(p=>{ if(aktifSektor.has(p.sektor)){ const u=(p.unit||'').trim(); if(u) relevan.add(u); } });
+  const vals=[...relevan].sort((a,b)=>a.localeCompare(b));
   const sel=document.getElementById('fltUnit'); const semasa=sel.value;
   sel.innerHTML='<option value="">Semua Unit</option>'+
     vals.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
-  if(semasa && vals.indexOf(semasa)>-1) sel.value=semasa;
+  if(semasa && vals.indexOf(semasa)>-1){ sel.value=semasa; }
+  else if(semasa){ sel.value=''; fltUnit=''; } // pilihan lama tak lagi sah -> set semula
 }
 function fillSel(id,allLabel,field){
   const vals=[...new Set(PROGRAM.map(p=>(p[field]||'').trim()).filter(Boolean))]
@@ -1553,15 +1559,29 @@ async function unitAutoAll(){
     toast('✓ '+(r.ditambah||0)+' unit dijana');
   }catch(e){ toast('Ralat sambungan','err'); }
 }
-function isiVipChips(terpilih){
-  const box=document.getElementById('fVip'); box.innerHTML='';
-  const set=new Set(terpilih||[]);
-  VIP.forEach(v=>{
-    const chip=document.createElement('label'); chip.className='vip-chip'+(set.has(v)?' on':'');
-    chip.innerHTML=`<input type="checkbox" value="${esc(v)}" ${set.has(v)?'checked':''}> ${esc(v)}`;
-    chip.querySelector('input').addEventListener('change',function(){ chip.classList.toggle('on',this.checked); });
-    box.appendChild(chip);
+function isiVipDropdown(val){
+  const sel=document.getElementById('fVipSel'); sel.innerHTML='';
+  ['','__lain__'].concat([]); // placeholder
+  const opts=['',...VIP,'__lain__'];
+  opts.forEach(v=>{
+    const o=document.createElement('option');
+    if(v===''){o.value='';o.textContent='— Tiada —';}
+    else if(v==='__lain__'){o.value='__lain__';o.textContent='Lain-lain (taip sendiri)…';}
+    else{o.value=v;o.textContent=v;}
+    sel.appendChild(o);
   });
+  const lain=document.getElementById('fVipLain');
+  if(val && VIP.indexOf(val)===-1){ sel.value='__lain__'; lain.style.display='block'; lain.value=val; }
+  else{ sel.value=val||''; lain.style.display='none'; lain.value=''; }
+}
+function onVipChange(){
+  document.getElementById('fVipLain').style.display =
+    document.getElementById('fVipSel').value==='__lain__' ? 'block':'none';
+}
+function bacaVip(){
+  const sel=document.getElementById('fVipSel').value;
+  const v = sel==='__lain__' ? document.getElementById('fVipLain').value.trim() : sel;
+  return v ? [v] : []; // simpan sebagai array (0 atau 1) untuk keserasian
 }
 
 function openForm(prog){
@@ -1586,7 +1606,7 @@ function openForm(prog){
     isiUnitDropdown(prog.sektor, prog.unit||'');
     document.getElementById('fUtama').checked = !!prog.utama;
     isiVenueDropdown(prog.tempat||'');
-    isiVipChips(prog.vip||[]);
+    isiVipDropdown((prog.vip||[])[0]||'');
     document.getElementById('delBtn').style.display='inline-block';
   }else{ // baharu
     document.getElementById('formEyebrow').textContent='Entri Baharu';
@@ -1599,7 +1619,7 @@ function openForm(prog){
     if(SESSION && SESSION.peranan==='Pengguna Sektor') document.getElementById('fSektor').value=SESSION.sektor;
     isiUnitDropdown(document.getElementById('fSektor').value, '');
     isiVenueDropdown('');
-    isiVipChips([]);
+    isiVipDropdown('');
     document.getElementById('delBtn').style.display='none';
   }
   document.getElementById('clashArea').innerHTML='';
@@ -1610,7 +1630,7 @@ function closeForm(){ document.getElementById('formOverlay').classList.remove('s
 function bacaBorang(){
   const sel=document.getElementById('fVenueSel').value;
   const tempat = sel==='__lain__' ? document.getElementById('fVenueLain').value.trim() : sel;
-  const vip=[...document.querySelectorAll('#fVip input:checked')].map(i=>i.value);
+  const vip=bacaVip();
   const g=id=>document.getElementById(id).value.trim();
   return {
     id:document.getElementById('fId').value,
