@@ -412,6 +412,7 @@ input,select{font-family:inherit;font-size:.92rem}
         <select id="fltPeringkat" onchange="setFilter('peringkat',this.value)"></select>
         <select id="fltKategori" onchange="setFilter('kategori',this.value)"></select>
         <select id="fltJenis" onchange="setFilter('jenis',this.value)"></select>
+        <select id="fltUnit" onchange="setFilter('unit',this.value)"></select>
       </div>
       <h2>Tapis Mengikut Sektor</h2>
       <div class="filter-actions">
@@ -895,9 +896,15 @@ input,select{font-family:inherit;font-size:.92rem}
         <div class="grp"><label>Dari Tarikh</label><input type="date" id="exMula"></div>
         <div class="grp"><label>Hingga Tarikh</label><input type="date" id="exTamat"></div>
       </div>
-      <div class="grp">
-        <label>Sektor</label>
-        <select id="exSektor" onchange="exUpdateNote()"></select>
+      <div class="row2">
+        <div class="grp">
+          <label>Sektor</label>
+          <select id="exSektor" onchange="onExSektorChange()"></select>
+        </div>
+        <div class="grp">
+          <label>Unit</label>
+          <select id="exUnit" onchange="exUpdateNote()"></select>
+        </div>
       </div>
       <div class="grp">
         <label>Skop semasa</label>
@@ -995,7 +1002,7 @@ let PROGRAM = [];            // [{...}]
 let WARNA = {};              // {namaSektor: hex}
 let aktifSektor = new Set(); // sektor yang ditapis (papar)
 let utamaOnly = false;       // penapis Program Utama sahaja
-let fltPeringkat='', fltKategori='', fltJenis='', searchQuery='';
+let fltPeringkat='', fltKategori='', fltJenis='', fltUnit='', searchQuery='';
 let currentView='kalendar';
 let calendar = null;
 
@@ -1179,6 +1186,7 @@ function filteredPrograms(){
     (!fltPeringkat || (p.peringkat||'')===fltPeringkat) &&
     (!fltKategori || (p.kategori||'')===fltKategori) &&
     (!fltJenis || (p.jenisProgram||'')===fltJenis) &&
+    (!fltUnit || (p.unit||'')===fltUnit) &&
     (!q || [p.nama,p.namaPegawai,p.pegawaiMeja,p.tempat,p.unit,p.subUnit,p.peringkat,
             p.kategori,p.jenisProgram,p.terasKPM,p.sasaran,(p.vip||[]).join(' ')]
             .join(' ').toLowerCase().includes(q))
@@ -1219,6 +1227,7 @@ function setFilter(type,val){
   if(type==='peringkat') fltPeringkat=val;
   else if(type==='kategori') fltKategori=val;
   else if(type==='jenis') fltJenis=val;
+  else if(type==='unit') fltUnit=val;
   applyFilters();
 }
 function onSearch(v){
@@ -1232,10 +1241,10 @@ function clearSearch(){
   applyFilters();
 }
 function resetFilters(){
-  utamaOnly=false; fltPeringkat=''; fltKategori=''; fltJenis=''; searchQuery='';
+  utamaOnly=false; fltPeringkat=''; fltKategori=''; fltJenis=''; fltUnit=''; searchQuery='';
   const el=id=>document.getElementById(id);
   el('utamaFilter').checked=false;
-  el('fltPeringkat').value=''; el('fltKategori').value=''; el('fltJenis').value='';
+  el('fltPeringkat').value=''; el('fltKategori').value=''; el('fltJenis').value=''; el('fltUnit').value='';
   el('searchBox').value=''; el('searchX').style.display='none';
   setAllSektor(true); // hidupkan semua sektor + applyFilters
   toast('Semua penapis di set semula');
@@ -1253,6 +1262,16 @@ function buildFilterDropdowns(){
   fillSel('fltPeringkat','Semua Peringkat','peringkat');
   fillSel('fltKategori','Semua Kategori','kategori');
   fillSel('fltJenis','Semua Jenis Program','jenisProgram');
+  fillUnitFilter();
+}
+function fillUnitFilter(){
+  let src = PROGRAM;
+  if(SESSION && SESSION.peranan==='Pengguna Sektor') src = PROGRAM.filter(p=>p.sektor===SESSION.sektor);
+  const vals=[...new Set(src.map(p=>(p.unit||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const sel=document.getElementById('fltUnit'); const semasa=sel.value;
+  sel.innerHTML='<option value="">Semua Unit</option>'+
+    vals.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  if(semasa && vals.indexOf(semasa)>-1) sel.value=semasa;
 }
 function fillSel(id,allLabel,field){
   const vals=[...new Set(PROGRAM.map(p=>(p[field]||'').trim()).filter(Boolean))]
@@ -2450,19 +2469,46 @@ function openExport(){
   document.getElementById('exMula').value=yr+'-01-01';
   document.getElementById('exTamat').value=yr+'-12-31';
   const sel=document.getElementById('exSektor');
-  sel.innerHTML='<option value="">Ikut tapisan semasa</option>'+
-    SEKTOR.map(s=>'<option value="'+esc(s.nama)+'">'+esc(s.nama)+'</option>').join('');
+  let sektorOpts=SEKTOR;
+  // Pengguna Sektor: kunci ke sektor sendiri
+  if(SESSION && SESSION.peranan==='Pengguna Sektor'){
+    sektorOpts=SEKTOR.filter(s=>s.nama===SESSION.sektor);
+    sel.innerHTML=sektorOpts.map(s=>'<option value="'+esc(s.nama)+'">'+esc(s.nama)+'</option>').join('');
+  }else{
+    sel.innerHTML='<option value="">Ikut tapisan semasa</option>'+
+      SEKTOR.map(s=>'<option value="'+esc(s.nama)+'">'+esc(s.nama)+'</option>').join('');
+  }
+  fillExUnit();
   exUpdateNote();
   document.getElementById('exportOverlay').classList.add('show');
 }
+function fillExUnit(){
+  const pilihSektor=document.getElementById('exSektor').value;
+  // unit ikut sektor terpilih; jika tiada, ikut skop pengguna
+  let src=PROGRAM;
+  if(pilihSektor) src=PROGRAM.filter(p=>p.sektor===pilihSektor);
+  else if(SESSION && SESSION.peranan==='Pengguna Sektor') src=PROGRAM.filter(p=>p.sektor===SESSION.sektor);
+  const vals=[...new Set(src.map(p=>(p.unit||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const sel=document.getElementById('exUnit'); const semasa=sel.value;
+  sel.innerHTML='<option value="">Semua unit</option>'+
+    vals.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  if(semasa && vals.indexOf(semasa)>-1) sel.value=semasa; else sel.value='';
+}
+function onExSektorChange(){ fillExUnit(); exUpdateNote(); }
 function exUpdateNote(){
   const pilih=document.getElementById('exSektor').value;
+  const unit=document.getElementById('exUnit').value;
   const el=document.getElementById('exNote');
-  if(pilih){ el.textContent='Satu sektor: '+pilih; return; }
-  const aktif=SEKTOR.filter(s=>aktifSektor.has(s.nama));
-  el.textContent=(aktifSektor.size===SEKTOR.length)
-    ? 'Semua sektor ('+SEKTOR.length+')'
-    : (aktif.length ? aktif.map(s=>s.nama.replace('Sektor ','')).join(', ') : '⚠ Tiada sektor dipilih');
+  let teks;
+  if(pilih) teks='Satu sektor: '+pilih;
+  else{
+    const aktif=SEKTOR.filter(s=>aktifSektor.has(s.nama));
+    teks=(aktifSektor.size===SEKTOR.length)
+      ? 'Semua sektor ('+SEKTOR.length+')'
+      : (aktif.length ? aktif.map(s=>s.nama.replace('Sektor ','')).join(', ') : '⚠ Tiada sektor dipilih');
+  }
+  if(unit) teks+=' · Unit: '+unit;
+  el.textContent=teks;
 }
 function closeExport(){ document.getElementById('exportOverlay').classList.remove('show'); }
 
@@ -2495,6 +2541,7 @@ async function generatePDF(){
   const start=document.getElementById('exMula').value;
   const end=document.getElementById('exTamat').value;
   const pilihSektor=document.getElementById('exSektor').value; // '' = ikut tapisan
+  const pilihUnit=document.getElementById('exUnit').value;      // '' = semua unit
   const sertaStats=document.getElementById('exStats').checked;
   if(!start||!end){ toast('Sila isi julat tarikh','err'); return; }
   if(end<start){ toast('Tarikh akhir tak boleh sebelum tarikh mula','err'); return; }
@@ -2512,8 +2559,9 @@ async function generatePDF(){
     const PW=210, PH=297, M=12, TOP=34, FOOT=14;
     const NAVY=[15,41,66], BRASS=[184,134,11];
 
-    // tapis: ikut sektor terpilih ATAU tapisan semasa
-    const dalamSkop = p => pilihSektor ? (p.sektor===pilihSektor) : aktifSektor.has(p.sektor);
+    // tapis: ikut sektor terpilih ATAU tapisan semasa, + unit (jika dipilih)
+    const dalamSkop = p => (pilihSektor ? (p.sektor===pilihSektor) : aktifSektor.has(p.sektor))
+                            && (!pilihUnit || (p.unit||'').trim()===pilihUnit);
     const items=PROGRAM
       .filter(p=>dalamSkop(p) && p.mula>=start && p.mula<=end)
       .sort((a,b)=>a.mula.localeCompare(b.mula));
@@ -2684,9 +2732,10 @@ async function generatePDF(){
       doc.text('Muka surat '+i+' / '+total, PW-M, PH-6, {align:'right'});
     }
 
+    const unitTag = pilihUnit ? '_'+pilihUnit.replace(/[^\w]/g,'-') : '';
     const namaFail = pilihSektor
-      ? 'Takwim_'+pilihSektor.replace('Sektor ','').replace(/[^\w]/g,'-')+'_'+start+'_'+end+'.pdf'
-      : 'Takwim-JPN-Kedah_'+start+'_hingga_'+end+'.pdf';
+      ? 'Takwim_'+pilihSektor.replace('Sektor ','').replace(/[^\w]/g,'-')+unitTag+'_'+start+'_'+end+'.pdf'
+      : 'Takwim-JPN-Kedah'+unitTag+'_'+start+'_hingga_'+end+'.pdf';
     doc.save(namaFail);
     closeExport();
     toast('PDF berjaya dijana ✓');
