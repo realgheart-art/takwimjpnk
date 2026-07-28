@@ -357,6 +357,19 @@ input,select{font-family:inherit;font-size:.92rem}
 .chart-empty{color:var(--muted);font-size:.85rem;padding:10px 0}
 .lap-analitik-sum{font-size:.84rem;color:var(--ink);margin-bottom:12px;padding:9px 12px;background:var(--paper-2);border-radius:8px}
 .lap-analitik-sum b{color:var(--navy)}
+.teras-toggle{display:flex;gap:0;background:var(--paper-2);border:1.5px solid var(--line);border-radius:9px;padding:3px}
+.teras-toggle button{font-size:.76rem;font-weight:600;color:var(--muted);padding:6px 14px;border-radius:7px;border:none;background:transparent}
+.teras-toggle button.active{background:var(--navy);color:#fff}
+.teras-block{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;background:#fff}
+.teras-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.teras-head .tb-name{font-family:'Fraunces',serif;font-weight:600;color:var(--navy);font-size:1.05rem}
+.teras-head .tb-total{font-size:.76rem;font-weight:700;color:var(--brass)}
+.teras-sub{display:flex;flex-direction:column;gap:7px}
+.tb-row{display:grid;grid-template-columns:150px 1fr 34px;align-items:center;gap:10px;font-size:.8rem}
+.tb-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.tb-track{background:var(--paper-2);border-radius:6px;height:14px;overflow:hidden}
+.tb-fill{display:block;height:100%;border-radius:6px;min-width:2px;transition:width .4s ease}
+.tb-val{text-align:right;font-weight:700;color:var(--navy)}
 .hbars{display:flex;flex-direction:column;gap:8px}
 .hbar-row{display:grid;grid-template-columns:130px 1fr 34px;align-items:center;gap:10px;font-size:.8rem}
 .hbar-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
@@ -412,6 +425,7 @@ input,select{font-family:inherit;font-size:.92rem}
         <select id="fltPeringkat" onchange="setFilter('peringkat',this.value)"></select>
         <select id="fltKategori" onchange="setFilter('kategori',this.value)"></select>
         <select id="fltJenis" onchange="setFilter('jenis',this.value)"></select>
+        <select id="fltTeras" onchange="setFilter('teras',this.value)"></select>
         <select id="fltUnit" onchange="setFilter('unit',this.value)"></select>
       </div>
       <h2>Tapis Mengikut Sektor</h2>
@@ -464,6 +478,16 @@ input,select{font-family:inherit;font-size:.92rem}
         <div class="chart-grid">
           <div class="chart-card"><h3>Program Mengikut Teras Utama RPM</h3><div id="chartTeras"></div></div>
           <div class="chart-card"><h3>Program Mengikut Peringkat</h3><div id="chartPeringkat"></div></div>
+        </div>
+        <div class="chart-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+            <h3 style="margin:0">Aktiviti Mengikut Teras RPM &amp; Sektor/Unit Terlibat</h3>
+            <div class="teras-toggle">
+              <button id="tmSektor" onclick="setTerasMode('sektor')">Sektor</button>
+              <button id="tmUnit" onclick="setTerasMode('unit')">Unit</button>
+            </div>
+          </div>
+          <div id="chartTerasCross"></div>
         </div>
         <div class="chart-card"><h3>Status Laporan Program Utama</h3><div id="chartLaporan"></div></div>
       </div>
@@ -992,6 +1016,7 @@ let VENUE = [];              // [string]
 let UNIT = [];               // [{sektor,nama,warna}]
 let UNITWARNA = {};          // "sektor||nama" -> hex
 let colorMode = 'sektor';    // 'sektor' | 'unit'
+let terasMode = 'sektor';    // pecahan analisis Teras: 'sektor' | 'unit'
 let SPERINGKAT=[], SKATEGORI=[], SJENIS=[], STERAS=[]; // senarai dropdown
 let TETAPAN = { kemaskiniPS: true };
 let KONFLIKSAH = new Map();   // kunci -> {oleh,tarikh}
@@ -1003,7 +1028,7 @@ let PROGRAM = [];            // [{...}]
 let WARNA = {};              // {namaSektor: hex}
 let aktifSektor = new Set(); // sektor yang ditapis (papar)
 let utamaOnly = false;       // penapis Program Utama sahaja
-let fltPeringkat='', fltKategori='', fltJenis='', fltUnit='', searchQuery='';
+let fltPeringkat='', fltKategori='', fltJenis='', fltTeras='', fltUnit='', searchQuery='';
 let currentView='kalendar';
 let calendar = null;
 
@@ -1189,6 +1214,7 @@ function filteredPrograms(){
     (!fltPeringkat || (p.peringkat||'')===fltPeringkat) &&
     (!fltKategori || (p.kategori||'')===fltKategori) &&
     (!fltJenis || (p.jenisProgram||'')===fltJenis) &&
+    (!fltTeras || (p.terasKPM||'')===fltTeras) &&
     (!fltUnit || (p.unit||'')===fltUnit) &&
     (!q || [p.nama,p.namaPegawai,p.pegawaiMeja,p.tempat,p.unit,p.subUnit,p.peringkat,
             p.kategori,p.jenisProgram,p.terasKPM,p.sasaran,(p.vip||[]).join(' ')]
@@ -1230,6 +1256,7 @@ function setFilter(type,val){
   if(type==='peringkat') fltPeringkat=val;
   else if(type==='kategori') fltKategori=val;
   else if(type==='jenis') fltJenis=val;
+  else if(type==='teras') fltTeras=val;
   else if(type==='unit') fltUnit=val;
   applyFilters();
 }
@@ -1244,10 +1271,10 @@ function clearSearch(){
   applyFilters();
 }
 function resetFilters(){
-  utamaOnly=false; fltPeringkat=''; fltKategori=''; fltJenis=''; fltUnit=''; searchQuery='';
+  utamaOnly=false; fltPeringkat=''; fltKategori=''; fltJenis=''; fltTeras=''; fltUnit=''; searchQuery='';
   const el=id=>document.getElementById(id);
   el('utamaFilter').checked=false;
-  el('fltPeringkat').value=''; el('fltKategori').value=''; el('fltJenis').value=''; el('fltUnit').value='';
+  el('fltPeringkat').value=''; el('fltKategori').value=''; el('fltJenis').value=''; el('fltTeras').value=''; el('fltUnit').value='';
   el('searchBox').value=''; el('searchX').style.display='none';
   setAllSektor(true); // hidupkan semua sektor + applyFilters
   toast('Semua penapis di set semula');
@@ -1265,6 +1292,7 @@ function buildFilterDropdowns(){
   fillSel('fltPeringkat','Semua Peringkat','peringkat');
   fillSel('fltKategori','Semua Kategori','kategori');
   fillSel('fltJenis','Semua Jenis Program','jenisProgram');
+  fillSel('fltTeras','Semua Teras RPM','terasKPM');
   fillUnitFilter();
 }
 function fillUnitFilter(){
@@ -1339,6 +1367,49 @@ function buildAnalitik(){
               (totU?' ('+pctU+'%)':'')+' · Belum: <b style="color:var(--danger)">'+(totU-doneU)+'</b></div>';
   lapHtml+=progressBars(uArr);
   document.getElementById('chartLaporan').innerHTML=lapHtml;
+
+  // analisis silang: Teras RPM × Sektor/Unit
+  document.getElementById('tmSektor').classList.toggle('active', terasMode==='sektor');
+  document.getElementById('tmUnit').classList.toggle('active', terasMode==='unit');
+  document.getElementById('chartTerasCross').innerHTML=buildTerasCross(data, terasMode);
+}
+function setTerasMode(m){
+  terasMode=m;
+  document.getElementById('tmSektor').classList.toggle('active', m==='sektor');
+  document.getElementById('tmUnit').classList.toggle('active', m==='unit');
+  document.getElementById('chartTerasCross').innerHTML=buildTerasCross(filteredPrograms(), m);
+}
+function buildTerasCross(data, mode){
+  const byTeras={};
+  data.forEach(p=>{
+    const t=(p.terasKPM||'').trim()||'(Tiada Teras)';
+    if(!byTeras[t]) byTeras[t]={total:0, sub:{}};
+    byTeras[t].total++;
+    const key = mode==='unit' ? ((p.unit||'').trim()||'(Tiada Unit)') : p.sektor;
+    if(!byTeras[t].sub[key]) byTeras[t].sub[key]={val:0, sektor:p.sektor};
+    byTeras[t].sub[key].val++;
+  });
+  const terasList=Object.keys(byTeras).sort((a,b)=>byTeras[b].total-byTeras[a].total);
+  if(!terasList.length) return '<p class="chart-empty">Tiada data untuk penapis semasa.</p>';
+  let h='';
+  terasList.forEach(t=>{
+    const blok=byTeras[t];
+    const subArr=Object.keys(blok.sub).map(k=>({label:k, val:blok.sub[k].val, warna:WARNA[blok.sub[k].sektor]||'#5a6b7b'}))
+      .sort((a,b)=>b.val-a.val);
+    const maxSub=Math.max(...subArr.map(s=>s.val));
+    h+='<div class="teras-block">'+
+       '<div class="teras-head"><span class="tb-name">'+esc(t)+'</span>'+
+       '<span class="tb-total">'+blok.total+' aktiviti · '+subArr.length+(mode==='unit'?' unit':' sektor')+'</span></div>'+
+       '<div class="teras-sub">'+
+       subArr.map(s=>{
+         const w=maxSub?Math.round(s.val/maxSub*100):0;
+         return '<div class="tb-row"><span class="tb-lbl" title="'+esc(s.label)+'">'+esc(s.label.replace('Sektor ',''))+'</span>'+
+           '<span class="tb-track"><span class="tb-fill" style="width:'+w+'%;background:'+s.warna+'"></span></span>'+
+           '<span class="tb-val">'+s.val+'</span></div>';
+       }).join('')+
+       '</div></div>';
+  });
+  return h;
 }
 function progressBars(arr){
   if(!arr.length) return '<p class="chart-empty">Tiada Program Utama untuk penapis semasa.</p>';
