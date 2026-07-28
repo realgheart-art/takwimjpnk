@@ -329,6 +329,16 @@ input,select{font-family:inherit;font-size:.92rem}
 .tet-tajuk{font-weight:700;color:var(--navy);font-size:.9rem;margin-bottom:4px}
 .tet-nota{font-size:.78rem;color:var(--muted);line-height:1.5}
 .tet-status{margin-top:16px;font-size:.82rem;font-weight:700;padding:10px 12px;background:var(--paper-2);border-radius:8px}
+.ganti-list{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;margin-top:6px}
+.ganti-row{display:grid;grid-template-columns:20px 1fr 20px 1fr;align-items:center;gap:10px}
+.ganti-row input[type=checkbox]{width:16px;height:16px;accent-color:var(--brass)}
+.ganti-old{display:flex;align-items:center;justify-content:space-between;gap:6px;background:var(--paper-2);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;overflow:hidden}
+.go-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.82rem;color:var(--ink)}
+.go-bil{flex-shrink:0;font-size:.68rem;font-weight:700;color:var(--muted);background:#fff;border-radius:99px;padding:2px 7px}
+.ganti-arrow{color:var(--brass);font-weight:700;text-align:center}
+.ganti-new{padding:8px 10px;border:1.5px solid var(--line);border-radius:8px;font-size:.82rem}
+.ganti-new:enabled{border-color:var(--brass);background:#fffdf7}
+.ganti-new:disabled{background:#f4f4f2;color:var(--muted)}
 .switch{position:relative;display:inline-block;width:48px;height:27px;flex-shrink:0}
 .switch input{opacity:0;width:0;height:0}
 .slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:27px;transition:.2s}
@@ -448,6 +458,7 @@ input,select{font-family:inherit;font-size:.92rem}
           <button class="btn-arkib" id="arkibBtn" onclick="doArkibReset()" style="display:none">🗄 Arkib &amp; Reset</button>
           <button class="btn-unit" id="unitBtn" onclick="openUnitPanel()" style="display:none">🎨 Urus Unit</button>
           <button class="btn-unit" id="tetapanBtn" onclick="openTetapan()" style="display:none">⚙ Tetapan</button>
+          <button class="btn-unit" id="gantiBtn" onclick="openGantiPukal()" style="display:none">🔧 Ganti Pukal</button>
           <button class="btn-pdf" onclick="openExport()">⤓ Export PDF</button>
           <button class="btn-import" id="importBtn" onclick="openImport()" style="display:none">⤒ Import</button>
           <button class="btn-add" id="addBtn" onclick="openForm()" style="display:none">＋ Tambah Program</button>
@@ -814,6 +825,40 @@ input,select{font-family:inherit;font-size:.92rem}
   </div>
 </div>
 
+<!-- ============ MODAL: GANTI PUKAL ============ -->
+<div class="overlay" id="gantiOverlay">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow">Panel Admin</div>
+        <h3>Ganti Pukal Nilai</h3>
+      </div>
+      <button class="x-btn" onclick="closeGantiPukal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:12px;line-height:1.5">
+        Seragamkan pengisian yang tak ikut dropdown. Pilih medan, tanda nilai yang perlu diubah, dan taip nilai yang sepatutnya.
+        Sistem gantikan <b>semua</b> program yang padan &amp; kemas kini senarai dropdown.
+      </p>
+      <div class="grp">
+        <label>Medan</label>
+        <select id="gantiMedan" onchange="renderGantiList()">
+          <option value="peringkat">Peringkat</option>
+          <option value="kategori">Kategori</option>
+          <option value="jenis">Jenis Program</option>
+          <option value="teras">Teras RPM</option>
+          <option value="unit">Unit</option>
+        </select>
+      </div>
+      <div id="gantiList" class="ganti-list"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeGantiPukal()">Batal</button>
+      <button class="btn-save" id="gantiSaveBtn" onclick="saveGantiPukal()">Ganti Sekarang</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL: TETAPAN (Admin) ============ -->
 <div class="overlay" id="tetapanOverlay">
   <div class="modal" style="max-width:480px">
@@ -951,7 +996,7 @@ input,select{font-family:inherit;font-size:.92rem}
 <script>
 /* =================== KONFIGURASI =================== */
 // >>> GANTIKAN dengan URL Web App GAS anda (berakhir dengan /exec) <<<
-const GAS_URL = "https://script.google.com/macros/s/AKfycbz5BpEjNNwt2sFC6vPO4vtStXjb7ao0ul0pM6ErwYo9AFgiHHDreLU3RNPgqfpFFK1x/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz-Kl1Mf4zJEYWCrIbw-P8EyUP-RYnomjAerynIt-L3_bcFmWa1qoA7ZkdPizMdbTkk/exec";
 
 /* =================== PWA =================== */
 let deferredPrompt = null;
@@ -1092,6 +1137,7 @@ function renderAuthUI(){
   document.getElementById('arkibBtn').style.display     = (logged && SESSION.peranan==='Admin') ? 'flex' : 'none';
   document.getElementById('unitBtn').style.display      = (logged && SESSION.peranan==='Admin') ? 'flex' : 'none';
   document.getElementById('tetapanBtn').style.display   = (logged && SESSION.peranan==='Admin') ? 'flex' : 'none';
+  document.getElementById('gantiBtn').style.display     = (logged && SESSION.peranan==='Admin') ? 'flex' : 'none';
   if(logged){
     document.getElementById('uName').textContent = SESSION.nama;
     document.getElementById('uRole').textContent = SESSION.peranan +
@@ -1516,6 +1562,63 @@ function onSektorChange(){ isiUnitDropdown(document.getElementById('fSektor').va
 function bacaUnit(){
   const sel=document.getElementById('fUnitSel').value;
   return sel==='__lain__' ? document.getElementById('fUnitLain').value.trim() : sel;
+}
+
+/* =================== GANTI PUKAL (Admin) =================== */
+const GANTI_FIELD={peringkat:'peringkat',kategori:'kategori',jenis:'jenisProgram',teras:'terasKPM',unit:'unit'};
+function openGantiPukal(){
+  document.getElementById('gantiMedan').value='teras';
+  renderGantiList();
+  document.getElementById('gantiOverlay').classList.add('show');
+}
+function closeGantiPukal(){ document.getElementById('gantiOverlay').classList.remove('show'); }
+function renderGantiList(){
+  const medan=document.getElementById('gantiMedan').value;
+  const field=GANTI_FIELD[medan];
+  const vals=[...new Set(PROGRAM.map(p=>(p[field]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const box=document.getElementById('gantiList');
+  if(!vals.length){ box.innerHTML='<p class="chart-empty" style="padding:6px 0">Tiada nilai dalam medan ini.</p>'; return; }
+  // kira bilangan penggunaan setiap nilai
+  const kira={}; PROGRAM.forEach(p=>{ const v=(p[field]||'').trim(); if(v) kira[v]=(kira[v]||0)+1; });
+  box.innerHTML=vals.map((v,i)=>
+    '<div class="ganti-row">'+
+    '<input type="checkbox" id="gk_'+i+'" onchange="gantiToggle('+i+')">'+
+    '<div class="ganti-old"><span class="go-txt" title="'+esc(v)+'">'+esc(v)+'</span><span class="go-bil">'+(kira[v]||0)+'×</span></div>'+
+    '<span class="ganti-arrow">→</span>'+
+    '<input type="text" id="gn_'+i+'" class="ganti-new" data-lama="'+esc(v)+'" value="'+esc(v)+'" disabled placeholder="Nilai baharu">'+
+    '</div>').join('');
+}
+function gantiToggle(i){
+  const cb=document.getElementById('gk_'+i);
+  const inp=document.getElementById('gn_'+i);
+  inp.disabled=!cb.checked;
+  if(cb.checked){ inp.focus(); inp.select(); }
+}
+async function saveGantiPukal(){
+  const medan=document.getElementById('gantiMedan').value;
+  const rows=[...document.querySelectorAll('#gantiList .ganti-row')];
+  const gantian=[];
+  rows.forEach((row,i)=>{
+    const cb=document.getElementById('gk_'+i);
+    const inp=document.getElementById('gn_'+i);
+    if(cb && cb.checked){
+      const lama=inp.getAttribute('data-lama');
+      const baru=inp.value.trim();
+      if(baru && baru!==lama) gantian.push({lama, baru});
+    }
+  });
+  if(!gantian.length){ toast('Tiada perubahan sah dipilih','err'); return; }
+  if(!confirm('Ganti '+gantian.length+' nilai dalam medan "'+medan+'" untuk SEMUA program yang padan?\n\n'+
+    gantian.map(g=>'• "'+g.lama+'" → "'+g.baru+'"').join('\n'))) return;
+  const btn=document.getElementById('gantiSaveBtn'); btn.disabled=true; btn.textContent='Menggantikan…';
+  try{
+    const r=await api('gantiPukal',{medan, gantian});
+    if(!r.ok){ toast(r.error||'Gagal ganti','err'); return; }
+    await reloadPrograms();  // muat semula data + dropdown + analitik
+    closeGantiPukal();
+    toast('✓ '+ (r.jumlah||0) +' pengisian program dikemas kini');
+  }catch(e){ toast('Ralat sambungan','err'); }
+  finally{ btn.disabled=false; btn.textContent='Ganti Sekarang'; }
 }
 
 /* =================== TETAPAN (Admin) =================== */
@@ -2512,7 +2615,13 @@ async function doImport(){
 
 async function reloadPrograms(){
   try{ const r=await api('bootstrap',{});
-    if(r&&r.ok){ PROGRAM=r.program||[]; buildFilterDropdowns(); refreshEvents(); updateKonflikCount(); if(currentView==='analitik') buildAnalitik(); }
+    if(r&&r.ok){
+      PROGRAM=r.program||[];
+      SPERINGKAT=r.peringkat||[]; SKATEGORI=r.kategori||[]; SJENIS=r.jenis||[]; STERAS=r.teras||[];
+      UNIT=r.unit||[]; rebuildUnitWarna();
+      buildFilterDropdowns(); refreshEvents(); updateKonflikCount();
+      if(currentView==='analitik') buildAnalitik();
+    }
   }catch(e){}
 }
 
@@ -2850,7 +2959,7 @@ function toast(msg,type){
   clearTimeout(toastT); toastT=setTimeout(()=>el.className='toast',3200);
 }
 // tutup overlay bila klik latar
-['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay','importOverlay','laporOverlay','arkibOverlay','laporListOverlay','previewOverlay','unitOverlay','tetapanOverlay','kpOverlay'].forEach(id=>{
+['formOverlay','detailOverlay','exportOverlay','loginOverlay','konflikOverlay','importOverlay','laporOverlay','arkibOverlay','laporListOverlay','previewOverlay','unitOverlay','tetapanOverlay','kpOverlay','gantiOverlay'].forEach(id=>{
   document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) e.target.classList.remove('show'); });
 });
 
